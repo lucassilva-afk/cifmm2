@@ -26,8 +26,8 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 @Service
 public class GerarQRCode {
 
-    private static final String IMAGES_PATH = "C:/Users/Relogio.ponto/eclipse-workspace/CIFMM2/resources/images/";
-    private static final String DOWNLOAD_PATH = "C:\\Users\\Relogio.ponto\\Downloads\\qrcode\\";
+    private static final String IMAGES_PATH = "C:/Users/lucas.santos/eclipse-workspace/cifmm-master/resources/images/";
+    private static final String DOWNLOAD_PATH = "C:\\Users\\lucas.santos\\Downloads\\qrcode\\";
     private static final String QR_URL = "https://validar.mogimirim.sp.gov.br/admin/qr/fR8V0M839kpVXT1gXv8SSf5M0wsXEcAC0fyCEnMC6FOa9XC57F1X0qU0K5RM2Lpk";
     private static final int TIMEOUT_SEGUNDOS = 60; // Aumentado para 60 segundos
 
@@ -35,8 +35,8 @@ public class GerarQRCode {
         System.out.println("=== INICIANDO DOWNLOAD QR CODE ===");
         System.out.println("RE: " + re);
         System.out.println("URL: " + QR_URL);
-        System.out.println("Diretório download: " + DOWNLOAD_PATH);
-        System.out.println("Diretório destino: " + IMAGES_PATH);
+        System.out.println("DiretÃ³rio download: " + DOWNLOAD_PATH);
+        System.out.println("DiretÃ³rio destino: " + IMAGES_PATH);
 
         validarDiretorioDownload();
         limparDownloadsAnteriores();
@@ -62,17 +62,17 @@ public class GerarQRCode {
     private void validarDiretorioDownload() {
         File downloadDir = new File(DOWNLOAD_PATH);
         if (!downloadDir.exists()) {
-            System.out.println("Criando diretório de download: " + DOWNLOAD_PATH);
+            System.out.println("Criando diretÃ³rio de download: " + DOWNLOAD_PATH);
             if (!downloadDir.mkdirs()) {
-                throw new RuntimeException("Falha ao criar diretório de download: " + DOWNLOAD_PATH);
+                throw new RuntimeException("Falha ao criar diretÃ³rio de download: " + DOWNLOAD_PATH);
             }
         }
         
         if (!downloadDir.canWrite()) {
-            throw new RuntimeException("Sem permissão de escrita no diretório: " + DOWNLOAD_PATH);
+            throw new RuntimeException("Sem permissÃ£o de escrita no diretÃ³rio: " + DOWNLOAD_PATH);
         }
         
-        System.out.println("Diretório de download validado: " + downloadDir.getAbsolutePath());
+        System.out.println("DiretÃ³rio de download validado: " + downloadDir.getAbsolutePath());
     }
 
     private void limparDownloadsAnteriores() {
@@ -103,17 +103,17 @@ public class GerarQRCode {
         
         ChromeOptions options = new ChromeOptions();
         
-        // Configurações básicas
+        // ConfiguraÃ§Ãµes bÃ¡sicas
         options.addArguments("--disable-gpu");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
         options.addArguments("--window-size=1920,1080");
         options.addArguments("--start-maximized");
         
-        // Para debug - remova em produção
+        // Para debug - remova em produÃ§Ã£o
         // options.addArguments("--headless=new");
         
-        // Configurações de download
+        // ConfiguraÃ§Ãµes de download
         HashMap<String, Object> chromePrefs = new HashMap<>();
         chromePrefs.put("download.default_directory", DOWNLOAD_PATH);
         chromePrefs.put("download.prompt_for_download", false);
@@ -134,14 +134,14 @@ public class GerarQRCode {
     }
 
     private void realizarDownloadQR(WebDriver driver, String re) throws Exception {
-        System.out.println("=== ACESSANDO PÁGINA ===");
+        System.out.println("=== ACESSANDO PÃGINA ===");
         driver.get(QR_URL);
         
-        // Aguarda página carregar
+        // Aguarda pÃ¡gina carregar
         Thread.sleep(3000);
         
-        // Debug: imprime título da página
-        System.out.println("Título da página: " + driver.getTitle());
+        // Debug: imprime tÃ­tulo da pÃ¡gina
+        System.out.println("TÃ­tulo da pÃ¡gina: " + driver.getTitle());
         System.out.println("URL atual: " + driver.getCurrentUrl());
         
         preencherFormulario(driver, re);
@@ -157,25 +157,25 @@ public class GerarQRCode {
 
     private void preencherFormulario(WebDriver driver, String re) {
         try {
-            System.out.println("Preenchendo formulário para RE: " + re);
+            System.out.println("Preenchendo formulÃ¡rio para RE: " + re);
             
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(TIMEOUT_SEGUNDOS));
             
-            // Aguarda o textarea estar presente e clicável
+            // Aguarda o textarea estar presente e clicÃ¡vel
             WebElement textarea = wait.until(ExpectedConditions.elementToBeClickable(By.id("Re")));
             
             // Limpa e preenche o textarea
             textarea.clear();
             textarea.sendKeys(re);
             
-            System.out.println("✓ Textarea preenchido com RE: " + re);
+            System.out.println("âœ“ Textarea preenchido com RE: " + re);
             
             // Pequena pausa para garantir que o valor foi inserido
             Thread.sleep(500);
             
         } catch (Exception e) {
-            System.err.println("Erro ao preencher formulário: " + e.getMessage());
-            throw new RuntimeException("Falha ao preencher formulário para RE: " + re, e);
+            System.err.println("Erro ao preencher formulÃ¡rio: " + e.getMessage());
+            throw new RuntimeException("Falha ao preencher formulÃ¡rio para RE: " + re, e);
         }
     }
 
@@ -185,24 +185,24 @@ public class GerarQRCode {
 
     private void submeterFormulario(WebDriver driver) {
         try {
-            System.out.println("Submetendo formulário...");
+            System.out.println("Submetendo formulÃ¡rio...");
             
             WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(TIMEOUT_SEGUNDOS));
             
-            // Encontra o botão de submit
+            // Encontra o botÃ£o de submit
             WebElement botaoSubmit = wait.until(ExpectedConditions.elementToBeClickable(By.cssSelector("button[type='submit']")));
             
-            // Clica no botão
+            // Clica no botÃ£o
             botaoSubmit.click();
             
-            System.out.println("✓ Formulário submetido com sucesso");
+            System.out.println("âœ“ FormulÃ¡rio submetido com sucesso");
             
             // Aguarda o processamento
             Thread.sleep(3000);
             
         } catch (Exception e) {
-            System.err.println("Erro ao submeter formulário: " + e.getMessage());
-            throw new RuntimeException("Falha ao submeter formulário", e);
+            System.err.println("Erro ao submeter formulÃ¡rio: " + e.getMessage());
+            throw new RuntimeException("Falha ao submeter formulÃ¡rio", e);
         }
     }
 
@@ -222,7 +222,7 @@ public class GerarQRCode {
                 File arquivoMaisRecente = arquivos[0];
                 
                 if (arquivoCompletamenteBaixado(arquivoMaisRecente)) {
-                    System.out.println("✓ Arquivo baixado com sucesso: " + arquivoMaisRecente.getName());
+                    System.out.println("âœ“ Arquivo baixado com sucesso: " + arquivoMaisRecente.getName());
                     System.out.println("Tamanho: " + arquivoMaisRecente.length() + " bytes");
                     return arquivoMaisRecente;
                 }
@@ -234,7 +234,7 @@ public class GerarQRCode {
             Thread.sleep(1000);
         }
         
-        System.err.println("✗ Timeout no download após " + TIMEOUT_SEGUNDOS + " segundos");
+        System.err.println("âœ— Timeout no download apÃ³s " + TIMEOUT_SEGUNDOS + " segundos");
         return null;
     }
 
@@ -256,7 +256,7 @@ public class GerarQRCode {
         System.out.println("Origem: " + arquivoBaixado.getAbsolutePath());
         System.out.println("Destino: " + destino.toString());
 
-        // Cria diretório se não existir
+        // Cria diretÃ³rio se nÃ£o existir
         Files.createDirectories(Paths.get(IMAGES_PATH));
 
         // Remove arquivo existente
@@ -270,10 +270,10 @@ public class GerarQRCode {
         
         // Verifica se foi movido corretamente
         if (Files.exists(destino) && Files.size(destino) > 0) {
-            System.out.println("✓ QR Code movido com sucesso!");
+            System.out.println("âœ“ QR Code movido com sucesso!");
             System.out.println("Tamanho final: " + Files.size(destino) + " bytes");
         } else {
-            throw new RuntimeException("Falha na verificação do arquivo movido");
+            throw new RuntimeException("Falha na verificaÃ§Ã£o do arquivo movido");
         }
     }
 
@@ -303,10 +303,10 @@ public class GerarQRCode {
         try {
             if (driver != null) {
                 System.err.println("URL atual: " + driver.getCurrentUrl());
-                System.err.println("Título: " + driver.getTitle());
+                System.err.println("TÃ­tulo: " + driver.getTitle());
             }
         } catch (Exception ex) {
-            System.err.println("Erro ao obter informações do driver: " + ex.getMessage());
+            System.err.println("Erro ao obter informaÃ§Ãµes do driver: " + ex.getMessage());
         }
     }
 }

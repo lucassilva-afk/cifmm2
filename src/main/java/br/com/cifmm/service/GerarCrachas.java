@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.List;
 import javax.imageio.ImageIO;
+import javax.swing.JOptionPane;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,15 +16,15 @@ import br.com.cifmm.repository.FuncionarioRepository;
 @Service
 public class GerarCrachas {
 
-    // Dependências
+    // DependÃªncias
     @Autowired private FuncionarioRepository funcionarioRepository;
     @Autowired private GerarQRCode gerarQRCodeService;
 
-    // Configurações de caminhos
-    private static final String IMAGES_PATH = "C:/Users/Relogio.ponto/eclipse-workspace/CIFMM2/resources/images/";
+    // ConfiguraÃ§Ãµes de caminhos
+    private static final String IMAGES_PATH = "C:/Users/lucas.santos/eclipse-workspace/cifmm-master/resources/images/";
     private static final String OUTPUT_PATH = "output/";
 
-    // Posicionamento dos elementos no crachá
+    // Posicionamento dos elementos no crachÃ¡
     private static final Point POSICAO_FOTO = new Point(41, 71);
     private static final Dimension TAMANHO_FOTO = new Dimension(129, 179);
     private static final Point POSICAO_QR = new Point(410, 305);
@@ -34,8 +35,8 @@ public class GerarCrachas {
 
     // Fontes
     private static final String FONTE_PRINCIPAL = "Arial";
-    private static final String FONTE_CUSTOM_1 = "C:\\Users\\Relogio.ponto\\eclipse-workspace\\CIFMM2\\resources\\fonts\\Museo500-Regular.otf";
-    private static final String FONTE_CUSTOM_2 = "C:\\Users\\Relogio.ponto\\eclipse-workspace\\CIFMM2\\resources\\fonts\\Museo300-Regular.otf";
+    private static final String FONTE_CUSTOM_1 = "C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\fonts\\Museo500-Regular.otf";
+    private static final String FONTE_CUSTOM_2 = "C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\fonts\\Museo300-Regular.otf";
 
     public void gerarTodosCrachas() {
         criarDiretorioSaida();
@@ -70,9 +71,9 @@ public class GerarCrachas {
             BufferedImage verso = processarVerso(nome, cargo, secretaria, matricula);
             
             salvarCracha(frente, verso, matricula);
-            System.out.println("Crachá gerado para " + nome + " (RE: " + matricula + ")");
+            System.out.println("CrachÃ¡ gerado para " + nome + " (RE: " + matricula + ")");
         } catch (Exception e) {
-            System.err.println("Erro ao gerar crachá para RE: " + matricula);
+            System.err.println("Erro ao gerar crachÃ¡ para RE: " + matricula);
             e.printStackTrace();
         }
     }
@@ -108,7 +109,7 @@ public class GerarCrachas {
         }
 
         if (!qrFile.exists()) {
-            throw new RuntimeException("QR Code não disponível para RE: " + matricula);
+            throw new RuntimeException("QR Code nÃ£o disponÃ­vel para RE: " + matricula);
         }
     }
 
@@ -135,7 +136,7 @@ public class GerarCrachas {
             g.drawImage(qrCode, POSICAO_QR.x, POSICAO_QR.y, TAMANHO_QR.width, TAMANHO_QR.height, null);
         }
 
-        // Adiciona textos por último
+        // Adiciona textos por Ãºltimo
         configurarTextosFrente(g, nome, matricula);
 
         // Fecha o Graphics
@@ -168,10 +169,10 @@ public class GerarCrachas {
     }
 
     private void configurarTextosFrente(Graphics2D g, String nome, String matricula) {
-        // Ativa suavização de texto
+        // Ativa suavizaÃ§Ã£o de texto
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        // Define a cor do texto como preto (ou outra cor visível)
+        // Define a cor do texto como preto (ou outra cor visÃ­vel)
         g.setColor(Color.BLACK);
 
         // Log para verificar os valores de entrada
@@ -180,18 +181,18 @@ public class GerarCrachas {
         // Nome
         g.setFont(new Font(FONTE_PRINCIPAL, Font.BOLD, 24));
         String primeiroNome = getPrimeiroNome(nome);
-        System.out.println("Primeiro nome: " + primeiroNome + ", posição: (" + POSICAO_NOME.x + ", " + POSICAO_NOME.y + ")");
+        System.out.println("Primeiro nome: " + primeiroNome + ", posiÃ§Ã£o: (" + POSICAO_NOME.x + ", " + POSICAO_NOME.y + ")");
         drawStringFit(g, primeiroNome, POSICAO_NOME.x, POSICAO_NOME.y, 220);
 
-        // Matrícula (com fallback se fonte custom falhar)
+        // MatrÃ­cula (com fallback se fonte custom falhar)
         try {
             Font fonteCustom = Font.createFont(Font.TRUETYPE_FONT, new File(FONTE_CUSTOM_1)).deriveFont(18f);
             g.setFont(fonteCustom);
         } catch (Exception e) {
-            System.err.println("Fonte customizada não encontrada, usando Arial padrão: " + e.getMessage());
+            System.err.println("Fonte customizada nÃ£o encontrada, usando Arial padrÃ£o: " + e.getMessage());
             g.setFont(new Font("Arial", Font.PLAIN, 18));
         }
-        System.out.println("Desenhando RE: " + matricula + ", posição: (" + POSICAO_MATRICULA.x + ", " + POSICAO_MATRICULA.y + ")");
+        System.out.println("Desenhando RE: " + matricula + ", posiÃ§Ã£o: (" + POSICAO_MATRICULA.x + ", " + POSICAO_MATRICULA.y + ")");
         g.drawString("RE: " + matricula, POSICAO_MATRICULA.x, POSICAO_MATRICULA.y);
     }
 
@@ -220,6 +221,24 @@ public class GerarCrachas {
         ImageIO.write(frente, "png", new File(frentePath));
         ImageIO.write(verso, "png", new File(versoPath));
     }
+    
+    public void gerarCrachasEmPDF(String matricula) {
+        try {
+            
+            String frentePath = GerarCrachas.OUTPUT_PATH + "cracha_frente_" + matricula + ".png";
+            String versoPath  = GerarCrachas.OUTPUT_PATH + "cracha_verso_" + matricula + ".png";
+            
+            // Gera PDF
+            GerarPDF gerarPDF = new GerarPDF();
+            gerarPDF.generateBadgePDF(frentePath, versoPath);
+
+            JOptionPane.showMessageDialog(null, "PDF gerado com sucesso!");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Erro ao gerar PDF: " + ex.getMessage());
+        }
+    }   
+    
 
     private String getPrimeiroNome(String nome) {
         if (nome == null || nome.trim().isEmpty()) return "";
