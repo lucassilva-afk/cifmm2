@@ -10,19 +10,9 @@ import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public class GerarPDF {
-	
-	private String frentePath;
-	private String versoPath;
-	
-	public void setFrentePath(String frentePath) {
-		this.frentePath = frentePath;
-	}
-	
-	public void setVersoPath(String versoPath) {
-        this.versoPath = versoPath;
-    }
     
     // Enum para as opções de impressão
     public enum OpcoesImpressao {
@@ -30,72 +20,165 @@ public class GerarPDF {
         VERSO,
         TODOS
     }
-
-    // O método foi modificado para aceitar o enum OpcoesImpressao
-    public void generateBadgePDF(String frentePath, String versoPath, OpcoesImpressao opcao) {  	
-    	
-        try {
-            // Crie um novo documento PDF
-            PDDocument document = new PDDocument();
-            
-            System.out.println("Frente: " + frentePath);
-            System.out.println("Verso: " + versoPath);
-            System.out.println("Opção de impressão: " + opcao);
-            
-            if (opcao == OpcoesImpressao.FRENTE || opcao == OpcoesImpressao.TODOS) {
-                // Lógica para adicionar a página da FRENTE
-                PDPage page1 = new PDPage(PDRectangle.A4);
-                document.addPage(page1);
-                PDImageXObject frontImage = PDImageXObject.createFromFile(frentePath, document);
-                try (PDPageContentStream contentStream = new PDPageContentStream(document, page1)) {
-                    // Escala e posição da imagem para a página A4
-                    float scale = Math.min(595f / frontImage.getWidth(), 842f / frontImage.getHeight());
-                    float scaledWidth = frontImage.getWidth() * scale;
-                    float scaledHeight = frontImage.getHeight() * scale;
-                    float x = (595f - scaledWidth) / 2;
-                    float y = (842f - scaledHeight) / 2;
-                    contentStream.drawImage(frontImage, x, y, scaledWidth, scaledHeight);
-                }
-            }
-
-            if (opcao == OpcoesImpressao.VERSO || opcao == OpcoesImpressao.TODOS) {
-                // Lógica para adicionar a página do VERSO
-                PDPage page2 = new PDPage(PDRectangle.A4);
-                document.addPage(page2);
-                PDImageXObject backImage = PDImageXObject.createFromFile(versoPath, document);
-                try (PDPageContentStream contentStream = new PDPageContentStream(document, page2)) {
-                    // Escala e posição da imagem para a página A4
-                    float scale = Math.min(595f / backImage.getWidth(), 842f / backImage.getHeight());
-                    float scaledWidth = backImage.getWidth() * scale;
-                    float scaledHeight = backImage.getHeight() * scale;
-                    float x = (595f - scaledWidth) / 2;
-                    float y = (842f - scaledHeight) / 2;
-                    contentStream.drawImage(backImage, x, y, scaledWidth, scaledHeight);
-                }
-            }
-
-            // ... (restante da sua lógica para salvar o arquivo) ...
-            
-            // A lógica de salvamento e seleção do arquivo é a mesma do seu código
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle("Salvar PDF");
-            fileChooser.setSelectedFile(new File("crachas.pdf"));
-            fileChooser.setFileFilter(new FileNameExtensionFilter("Arquivos PDF (*.pdf)", "pdf"));
-
-            if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                File arquivoDestino = fileChooser.getSelectedFile();
-                if (!arquivoDestino.getName().toLowerCase().endsWith(".pdf")) {
-                    arquivoDestino = new File(arquivoDestino.getAbsolutePath() + ".pdf");
-                }
-                document.save(arquivoDestino);
-                JOptionPane.showMessageDialog(null, "PDF gerado com sucesso em: " + arquivoDestino.getAbsolutePath());
-            }
-
-            document.close();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(null, "Erro ao gerar PDF: " + e.getMessage());
+    
+    // Classe para representar um item selecionado para impressão
+    public static class ItemImpressao {
+        private String caminhoArquivo;
+        private OpcoesImpressao tipo;
+        private String nomeArquivo;
+        
+        public ItemImpressao(String caminhoArquivo, OpcoesImpressao tipo, String nomeArquivo) {
+            this.caminhoArquivo = caminhoArquivo;
+            this.tipo = tipo;
+            this.nomeArquivo = nomeArquivo;
+        }
+        
+        // Getters
+        public String getCaminhoArquivo() { return caminhoArquivo; }
+        public OpcoesImpressao getTipo() { return tipo; }
+        public String getNomeArquivo() { return nomeArquivo; }
+        
+        public boolean isFrente() {
+            return tipo == OpcoesImpressao.FRENTE;
+        }
+        
+        public boolean isVerso() {
+            return tipo == OpcoesImpressao.VERSO;
         }
     }
+
+    /**
+     * Gera PDF com múltiplos crachás baseado nas seleções do usuário
+     * @param itensParaImprimir Lista de itens selecionados pelo usuário
+     */
+    public void gerarPDFMultiplo(List<ItemImpressao> itensParaImprimir) {
+        if (itensParaImprimir == null || itensParaImprimir.isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Nenhum item selecionado para impressão!");
+            return;
+        }
+        
+        try {
+            PDDocument document = new PDDocument();
+            
+            for (ItemImpressao item : itensParaImprimir) {
+                System.out.println("Processando: " + item.getNomeArquivo() + " - Tipo: " + item.getTipo());
+                
+                if (!new File(item.getCaminhoArquivo()).exists()) {
+                    System.err.println("Arquivo não encontrado: " + item.getCaminhoArquivo());
+                    continue;
+                }
+                
+                // Adicionar página para cada item selecionado
+                adicionarPagina(document, item.getCaminhoArquivo(), 
+                    item.getTipo().name() + " - " + item.getNomeArquivo());
+            }
+            
+            if (document.getNumberOfPages() == 0) {
+                document.close();
+                JOptionPane.showMessageDialog(null, "Nenhuma página foi gerada. Verifique as seleções.");
+                return;
+            }
+            
+            // Salvar o documento
+            salvarDocumento(document);
+            
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Erro ao gerar PDF: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Adiciona uma página individual ao documento
+     */
+    private void adicionarPagina(PDDocument document, String caminhoImagem, String descricao) throws IOException {
+        PDPage page = new PDPage(PDRectangle.A4);
+        document.addPage(page);
+        
+        PDImageXObject image = PDImageXObject.createFromFile(caminhoImagem, document);
+        
+        try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+            // Calcular escala para caber na página A4
+            float pageWidth = PDRectangle.A4.getWidth();
+            float pageHeight = PDRectangle.A4.getHeight();
+            
+            float scaleX = pageWidth / image.getWidth();
+            float scaleY = pageHeight / image.getHeight();
+            float scale = Math.min(scaleX, scaleY) * 0.9f; // 90% da página para margem
+            
+            float scaledWidth = image.getWidth() * scale;
+            float scaledHeight = image.getHeight() * scale;
+            
+            // Centralizar na página
+            float x = (pageWidth - scaledWidth) / 2;
+            float y = (pageHeight - scaledHeight) / 2;
+            
+            contentStream.drawImage(image, x, y, scaledWidth, scaledHeight);
+            
+            System.out.println("Página adicionada: " + descricao);
+        }
+    }
+    
+    /**
+     * Salva o documento PDF
+     */
+    private void salvarDocumento(PDDocument document) throws IOException {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Salvar PDF dos Crachás");
+        fileChooser.setSelectedFile(new File("crachas_selecionados.pdf"));
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Arquivos PDF (*.pdf)", "pdf"));
+        
+        int result = fileChooser.showSaveDialog(null);
+        
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File arquivoDestino = fileChooser.getSelectedFile();
+            
+            // Garantir extensão .pdf
+            if (!arquivoDestino.getName().toLowerCase().endsWith(".pdf")) {
+                arquivoDestino = new File(arquivoDestino.getAbsolutePath() + ".pdf");
+            }
+            
+            document.save(arquivoDestino);
+            document.close();
+            
+            JOptionPane.showMessageDialog(null, 
+                "PDF gerado com sucesso!\n" + 
+                "Páginas: " + document.getNumberOfPages() + "\n" +
+                "Local: " + arquivoDestino.getAbsolutePath(), 
+                "Sucesso", 
+                JOptionPane.INFORMATION_MESSAGE);
+                
+            System.out.println("PDF salvo em: " + arquivoDestino.getAbsolutePath());
+        } else {
+            document.close();
+            System.out.println("Operação cancelada pelo usuário");
+        }
+    }
+    
+    /**
+     * Método legado - mantido para compatibilidade
+     */
+    public void generateBadgePDF(String frentePath, String versoPath, OpcoesImpressao opcao) {
+        List<ItemImpressao> itens = new java.util.ArrayList<>();
+        
+        if (opcao == OpcoesImpressao.FRENTE || opcao == OpcoesImpressao.TODOS) {
+            itens.add(new ItemImpressao(frentePath, OpcoesImpressao.FRENTE, "Crachá - Frente"));
+        }
+        
+        if (opcao == OpcoesImpressao.VERSO || opcao == OpcoesImpressao.TODOS) {
+            itens.add(new ItemImpressao(versoPath, OpcoesImpressao.VERSO, "Crachá - Verso"));
+        }
+        
+        gerarPDFMultiplo(itens);
+    }
+
+	public void setFrentePath(String frentePath) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void setVersoPath(String versoPath) {
+		// TODO Auto-generated method stub
+		
+	}
 }

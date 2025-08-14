@@ -14,6 +14,9 @@ import java.nio.file.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import br.com.cifmm.service.GerarPDF.ItemImpressao;
+import br.com.cifmm.service.GerarPDF.OpcoesImpressao;
+
 
 import org.springframework.stereotype.Component;
 
@@ -633,13 +636,12 @@ public class AppSwingMain extends JFrame {
             System.out.println("🔄 Atualizando tabela...");
             List<File> imageFiles = getImageFilesFromFolder(OUTPUT_PATH);
             DefaultTableModel model = (DefaultTableModel) table_2.getModel();
+            
+            // Salvar estado dos checkboxes por caminho do arquivo
             Map<String, Boolean> estadoCheckboxes = new HashMap<>();
-
-            // Salva o estado atual dos checkboxes
-            // ... (o código aqui está correto, mas pode ser otimizado para as colunas 0 e 1)
+            
             for (int i = 0; i < model.getRowCount(); i++) {
-                // A coluna 1 é para o checkbox 'verso', não para a imagem
-                Object valor = model.getValueAt(i, 2); // Corrigido para a coluna da imagem
+                Object valor = model.getValueAt(i, 1); // Coluna da imagem
                 if (valor instanceof ImageIcon) {
                     ImageIcon icon = (ImageIcon) valor;
                     String caminho = icon.getDescription();
@@ -650,24 +652,24 @@ public class AppSwingMain extends JFrame {
                 }
             }
 
-            // Limpa e recarrega a tabela
+            // Limpar e recarregar a tabela
             model.setRowCount(0);
 
+            // Para cada arquivo de imagem, criar uma linha na tabela
             for (File imageFile : imageFiles) {
-                // O modelo da tabela tem 4 colunas: Frente, Verso, Fotos, Editar
-                Object[] rowData = new Object[3]; // Corrigido para 4 colunas
+                Object[] rowData = new Object[3];
                 String nomeArquivo = imageFile.getName();
+                
+                // Restaurar estado anterior ou usar false como padrão
                 Boolean estadoAnterior = estadoCheckboxes.get(nomeArquivo);
-
-                rowData[0] = estadoAnterior != null ? estadoAnterior : false; // Checkbox 'Frente'
-                rowData[0] = estadoAnterior != null ? estadoAnterior : false; // Checkbox 'Verso'
+                rowData[0] = estadoAnterior != null ? estadoAnterior : false; // Checkbox
                 
-                // Carrega a imagem e a coloca na coluna correta (índice 2)
+                // Carregar a imagem
                 ImageIcon icon = new ImageIcon(imageFile.getAbsolutePath());
-                icon.setDescription(imageFile.getAbsolutePath());
-                rowData[1] = icon; // Coluna 2 para a imagem
+                icon.setDescription(imageFile.getAbsolutePath()); // Armazenar caminho completo
+                rowData[1] = icon; // Coluna da imagem
                 
-                rowData[2] = "Editar"; // Coluna 3 para o botão
+                rowData[2] = "Editar"; // Botão
 
                 model.addRow(rowData);
             }
@@ -676,6 +678,7 @@ public class AppSwingMain extends JFrame {
             table_2.revalidate();
             table_2.repaint();
             System.out.println("✅ Tabela atualizada - " + imageFiles.size() + " arquivos encontrados");
+            
         } catch (Exception e) {
             System.err.println("❌ Erro ao atualizar tabela: " + e.getMessage());
             e.printStackTrace();
@@ -694,7 +697,54 @@ public class AppSwingMain extends JFrame {
             chckbxNewCheckBox.setText("Selecionar Todos");
         }
     }
+    
+    private List<ItemImpressao> obterItensParaImpressao() {
+        List<ItemImpressao> itens = new ArrayList<>();
+        DefaultTableModel model = (DefaultTableModel) table_2.getModel();
+        
+        for (int row = 0; row < model.getRowCount(); row++) {
+            boolean selecionado = (Boolean) model.getValueAt(row, 0);
+            
+            if (selecionado) {
+                // Obter o caminho do arquivo da descrição do ícone
+                Object iconObj = model.getValueAt(row, 1);
+                if (iconObj instanceof ImageIcon) {
+                    ImageIcon icon = (ImageIcon) iconObj;
+                    String caminhoArquivo = icon.getDescription();
+                    
+                    if (caminhoArquivo != null && new File(caminhoArquivo).exists()) {
+                        // Determinar se é frente ou verso baseado no nome do arquivo
+                        String nomeArquivo = new File(caminhoArquivo).getName();
+                        OpcoesImpressao tipo = determinarTipoArquivo(nomeArquivo);
+                        
+                        ItemImpressao item = new ItemImpressao(
+                            caminhoArquivo,
+                            tipo,
+                            nomeArquivo
+                        );
+                        
+                        itens.add(item);
+                    }
+                }
+            }
+        }
+        
+        return itens;
+    }
 	
+	private OpcoesImpressao determinarTipoArquivo(String nomeArquivo) {
+		String nomeMinusculo = nomeArquivo.toLowerCase();
+	    
+	    if (nomeMinusculo.contains("frente")) {
+	        return OpcoesImpressao.FRENTE;
+	    } else if (nomeMinusculo.contains("verso")) {
+	        return OpcoesImpressao.VERSO;
+	    } else {
+	        // Se não conseguir determinar, assume frente como padrão
+	        return OpcoesImpressao.FRENTE;
+	    }
+	}
+
 	private void initUI() {			
 		
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -753,11 +803,74 @@ public class AppSwingMain extends JFrame {
         JScrollPane scrollPane = new JScrollPane();
         
         JButton btnNewButton_2 = new JButton("Gerar PDF");
+        
         btnNewButton_2.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                GerarCrachas gerarCrachas = new GerarCrachas();
-                String re = textField.getText().trim();
-                gerarCrachas.gerarCrachasEmPDF(re);
+                List<ItemImpressao> itensParaImprimir = obterItensParaImpressao();
+                
+                if (itensParaImprimir.isEmpty()) {
+                    JOptionPane.showMessageDialog(AppSwingMain.this, 
+                        "Por favor, selecione pelo menos um crachá para gerar o PDF!", 
+                        "Nenhuma Seleção", 
+                        JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                
+                // Mostrar resumo do que será impresso
+                StringBuilder resumo = new StringBuilder();
+                resumo.append("Itens selecionados para impressão:\n\n");
+                
+                // Contar frentes e versos
+                int totalFrente = 0;
+                int totalVerso = 0;
+                
+                for (ItemImpressao item : itensParaImprimir) {
+                    String tipo = item.isFrente() ? "Frente" : "Verso";
+                    resumo.append("• ").append(item.getNomeArquivo()).append(" (").append(tipo).append(")\n");
+                    
+                    if (item.isFrente()) totalFrente++;
+                    else totalVerso++;
+                }
+                
+                resumo.append("\nResumo: ").append(totalFrente).append(" frente(s) + ")
+                       .append(totalVerso).append(" verso(s) = ").append(itensParaImprimir.size()).append(" página(s)");
+                resumo.append("\n\nDeseja continuar com a geração do PDF?");
+                
+                int opcao = JOptionPane.showConfirmDialog(
+                    AppSwingMain.this, 
+                    resumo.toString(), 
+                    "Confirmar Geração de PDF", 
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE
+                );
+                
+                if (opcao == JOptionPane.YES_OPTION) {
+                    // Executar geração em thread separada
+                    SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+                        @Override
+                        protected Void doInBackground() throws Exception {
+                            GerarPDF gerador = new GerarPDF();
+                            gerador.gerarPDFMultiplo(itensParaImprimir);
+                            return null;
+                        }
+                        
+                        @Override
+                        protected void done() {
+                            try {
+                                get(); // Verificar se houve exceção
+                                System.out.println("PDF gerado com sucesso!");
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                                JOptionPane.showMessageDialog(AppSwingMain.this,
+                                    "Erro ao gerar PDF: " + ex.getMessage(),
+                                    "Erro",
+                                    JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
+                    };
+                    
+                    worker.execute();
+                }
             }
         });
         
