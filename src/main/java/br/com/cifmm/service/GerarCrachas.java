@@ -228,9 +228,10 @@ public class GerarCrachas {
             String frentePath = GerarCrachas.OUTPUT_PATH + "cracha_frente_" + matricula + ".png";
             String versoPath  = GerarCrachas.OUTPUT_PATH + "cracha_verso_" + matricula + ".png";
             
-            // Gera PDF
             GerarPDF gerarPDF = new GerarPDF();
-            gerarPDF.generateBadgePDF(frentePath, versoPath);
+            gerarPDF.setFrentePath(frentePath);
+            gerarPDF.setVersoPath(versoPath);                        
+
 
             JOptionPane.showMessageDialog(null, "PDF gerado com sucesso!");
         } catch (Exception ex) {

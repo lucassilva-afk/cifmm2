@@ -111,7 +111,7 @@ public class GerarQRCode {
         options.addArguments("--start-maximized");
         
         // Para debug - remova em produÃ§Ã£o
-        // options.addArguments("--headless=new");
+        options.addArguments("--headless=new");
         
         // ConfiguraÃ§Ãµes de download
         HashMap<String, Object> chromePrefs = new HashMap<>();
