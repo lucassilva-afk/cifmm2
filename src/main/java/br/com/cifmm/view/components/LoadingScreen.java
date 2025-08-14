@@ -13,7 +13,7 @@ public class LoadingScreen extends JPanel {
     private JLabel lblTempo; // Adicionado para acesso externo
     private Timer timer;
     private int progress = 0;
-    private final int TOTAL_TIME = 11000; // 30 segundos em milissegundos
+    private final int TOTAL_TIME = 16000; // 30 segundos em milissegundos
     private final int UPDATE_INTERVAL = 100; // Atualizar a cada 100ms
     private final int MAX_PROGRESS = TOTAL_TIME / UPDATE_INTERVAL; // 300 updates
     
