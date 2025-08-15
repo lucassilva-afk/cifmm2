@@ -16,7 +16,7 @@ import java.util.concurrent.Executors;
 
 import br.com.cifmm.service.GerarPDF.ItemImpressao;
 import br.com.cifmm.service.GerarPDF.OpcoesImpressao;
-
+import br.com.cifmm.util.REParser;
 
 import org.springframework.stereotype.Component;
 
@@ -63,6 +63,8 @@ public class AppSwingMain extends JFrame {
      * Create the frame.
      */
     public AppSwingMain(FuncionarioControl funcionarioControl) {
+    	setIconImage(Toolkit.getDefaultToolkit().getImage("C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\images\\Logo CIFMM.jpg"));
+    	setTitle("CIFMM 2.0");
         this.funcionarioControl = funcionarioControl;
         initUI();
         
@@ -102,6 +104,49 @@ public class AppSwingMain extends JFrame {
             // Fallback para Timer se WatchService falhar
             iniciarTimerAtualizacao();
         }
+    }
+    
+    private void toggleSelectAll(boolean selected, JCheckBox chckbxNewCheckBox) {
+		DefaultTableModel model = (DefaultTableModel) table_2.getModel();
+        
+		for (int row = 0; row < model.getRowCount(); row++) {
+	        model.setValueAt(selected, row, 0); // Coluna 0 é a única de checkbox
+	    }
+        
+        // Atualizar o texto do checkbox principal
+        if (selected) {
+        	chckbxNewCheckBox.setText("Deselecionar Todos");
+        } else {
+        	chckbxNewCheckBox.setText("Selecionar Todos");
+        }
+        
+        // Atualizar a visualizaÃ§Ã£o da tabela
+        table_2.repaint();
+		
+	}
+    
+    private List<File> getAllImageFiles() {
+        List<File> images = new ArrayList<>();
+        try {
+            File folder = new File(OUTPUT_PATH);
+            if (folder.exists() && folder.isDirectory()) {
+                File[] files = folder.listFiles((dir, name) ->
+                    name.toLowerCase().endsWith(".png") ||
+                    name.toLowerCase().endsWith(".jpg") ||
+                    name.toLowerCase().endsWith(".jpeg")
+                );
+
+                if (files != null) {
+                    Arrays.sort(files); // opcional: ordenar por nome
+                    images.addAll(Arrays.asList(files));
+                }
+            } else {
+                System.err.println("Pasta não encontrada: " + OUTPUT_PATH);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return images;
     }
     
     private void monitorarMudancasArquivos() {
@@ -689,7 +734,7 @@ public class AppSwingMain extends JFrame {
         if (areAllSelected()) {
             chckbxNewCheckBox.setSelected(true);
             chckbxNewCheckBox.setText("Deselecionar Todos");
-        } else if (areNoneSelected()) {
+        } else if (areAllSelected()) {
             chckbxNewCheckBox.setSelected(false);
             chckbxNewCheckBox.setText("Selecionar Todos");
         } else {
@@ -698,7 +743,18 @@ public class AppSwingMain extends JFrame {
         }
     }
     
-    private List<ItemImpressao> obterItensParaImpressao() {
+    private boolean areAllSelected() {
+    	DefaultTableModel model = (DefaultTableModel) table_2.getModel();
+	    for (int i = 0; i < model.getRowCount(); i++) {
+	        // Verifique apenas a coluna 0
+	        if (!(Boolean) model.getValueAt(i, 0)) {
+	            return false;
+	        }
+	    }
+	    return true;
+	}
+
+	private List<ItemImpressao> obterItensParaImpressao() {
         List<ItemImpressao> itens = new ArrayList<>();
         DefaultTableModel model = (DefaultTableModel) table_2.getModel();
         
@@ -733,7 +789,7 @@ public class AppSwingMain extends JFrame {
     }
 	
 	private OpcoesImpressao determinarTipoArquivo(String nomeArquivo) {
-		String nomeMinusculo = nomeArquivo.toLowerCase();
+	    String nomeMinusculo = nomeArquivo.toLowerCase();
 	    
 	    if (nomeMinusculo.contains("frente")) {
 	        return OpcoesImpressao.FRENTE;
@@ -744,6 +800,7 @@ public class AppSwingMain extends JFrame {
 	        return OpcoesImpressao.FRENTE;
 	    }
 	}
+
 
 	private void initUI() {			
 		
@@ -756,13 +813,34 @@ public class AppSwingMain extends JFrame {
 
         JPanel Header = new JPanel();
         Header.setBorder(new LineBorder(new Color(192, 192, 192)));
-        FlowLayout flowLayout = (FlowLayout) Header.getLayout();
-        flowLayout.setAlignment(FlowLayout.LEFT);
         contentPane.add(Header, BorderLayout.NORTH);
 
         JLabel lblNewLabel = new JLabel("");
         lblNewLabel.setIcon(new ImageIcon("C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\images\\logo.png"));
-        Header.add(lblNewLabel);
+        
+        JLabel lblNewLabel_2 = new JLabel("");
+        lblNewLabel_2.setHorizontalAlignment(SwingConstants.TRAILING);
+        lblNewLabel_2.setIcon(new ImageIcon("C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\images\\Logo_Header.png"));
+        GroupLayout gl_Header = new GroupLayout(Header);
+        gl_Header.setHorizontalGroup(
+        	gl_Header.createParallelGroup(Alignment.LEADING)
+        		.addGroup(Alignment.TRAILING, gl_Header.createSequentialGroup()
+        			.addContainerGap()
+        			.addComponent(lblNewLabel_2, GroupLayout.PREFERRED_SIZE, 185, GroupLayout.PREFERRED_SIZE)
+        			.addPreferredGap(ComponentPlacement.RELATED, 908, Short.MAX_VALUE)
+        			.addComponent(lblNewLabel)
+        			.addContainerGap())
+        );
+        gl_Header.setVerticalGroup(
+        	gl_Header.createParallelGroup(Alignment.LEADING)
+        		.addGroup(gl_Header.createSequentialGroup()
+        			.addGap(5)
+        			.addGroup(gl_Header.createParallelGroup(Alignment.LEADING)
+        				.addComponent(lblNewLabel_2)
+        				.addComponent(lblNewLabel))
+        			.addContainerGap())
+        );
+        Header.setLayout(gl_Header);
 
         JPanel SideBar = new JPanel();
         SideBar.setBorder(new MatteBorder(0, 1, 0, 1, new Color(192, 192, 192)));
@@ -779,17 +857,21 @@ public class AppSwingMain extends JFrame {
         contentPane.add(Main, BorderLayout.CENTER);
         
         textField = new JTextField();
+        textField.setBounds(10, 47, 1192, 41);
         textField.setColumns(10);
         textField.setVisible(false);
 
         JLabel lblNewLabel_1 = new JLabel("Digite o RE:");
+        lblNewLabel_1.setBounds(10, 11, 106, 25);
         lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
         lblNewLabel_1.setVisible(false);
 
         JButton btnNewButton_1 = new JButton("Buscar");
+        btnNewButton_1.setBounds(1121, 99, 81, 23);
         btnNewButton_1.setVisible(false);
         
         chckbxNewCheckBox = new JCheckBox("Selecionar Todos"); // Sem JCheckBox na frente!
+        chckbxNewCheckBox.setBounds(10, 95, 135, 27);
         chckbxNewCheckBox.setFont(new Font("Tahoma", Font.PLAIN, 15));
         chckbxNewCheckBox.addActionListener(e -> {
             toggleSelectAll(chckbxNewCheckBox.isSelected(), chckbxNewCheckBox); // Usar chckbxNewCheckBox nos dois lugares
@@ -801,8 +883,10 @@ public class AppSwingMain extends JFrame {
         // Tabela
         
         JScrollPane scrollPane = new JScrollPane();
+        scrollPane.setBounds(10, 129, 1101, 461);
         
         JButton btnNewButton_2 = new JButton("Gerar PDF");
+        btnNewButton_2.setBounds(1121, 567, 81, 23);
         
         btnNewButton_2.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
@@ -876,48 +960,6 @@ public class AppSwingMain extends JFrame {
         
         btnNewButton_2.setVisible(false);
         
-        GroupLayout gl_Main = new GroupLayout(Main);
-        gl_Main.setHorizontalGroup(
-        	gl_Main.createParallelGroup(Alignment.LEADING)
-        		.addGroup(gl_Main.createSequentialGroup()
-        			.addContainerGap()
-        			.addGroup(gl_Main.createParallelGroup(Alignment.LEADING)
-        				.addGroup(Alignment.TRAILING, gl_Main.createSequentialGroup()
-        					.addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 1192, Short.MAX_VALUE)
-        					.addContainerGap())
-        				.addGroup(Alignment.TRAILING, gl_Main.createSequentialGroup()
-        					.addComponent(chckbxNewCheckBox)
-        					.addPreferredGap(ComponentPlacement.RELATED, 951, Short.MAX_VALUE)
-        					.addComponent(btnNewButton_1, GroupLayout.PREFERRED_SIZE, 106, GroupLayout.PREFERRED_SIZE)
-        					.addContainerGap())
-        				.addGroup(Alignment.TRAILING, gl_Main.createSequentialGroup()
-        					.addComponent(textField, GroupLayout.DEFAULT_SIZE, 1192, Short.MAX_VALUE)
-        					.addContainerGap())
-        				.addGroup(Alignment.TRAILING, gl_Main.createSequentialGroup()
-        					.addComponent(btnNewButton_2, GroupLayout.PREFERRED_SIZE, 100, GroupLayout.PREFERRED_SIZE)
-        					.addContainerGap())
-        				.addGroup(gl_Main.createSequentialGroup()
-        					.addComponent(lblNewLabel_1)
-        					.addContainerGap(1096, Short.MAX_VALUE))))
-        );
-        gl_Main.setVerticalGroup(
-        	gl_Main.createParallelGroup(Alignment.LEADING)
-        		.addGroup(gl_Main.createSequentialGroup()
-        			.addContainerGap()
-        			.addComponent(lblNewLabel_1)
-        			.addPreferredGap(ComponentPlacement.RELATED)
-        			.addComponent(textField, GroupLayout.PREFERRED_SIZE, 48, GroupLayout.PREFERRED_SIZE)
-        			.addPreferredGap(ComponentPlacement.UNRELATED)
-        			.addGroup(gl_Main.createParallelGroup(Alignment.LEADING)
-        				.addComponent(btnNewButton_1, GroupLayout.PREFERRED_SIZE, 42, GroupLayout.PREFERRED_SIZE)
-        				.addComponent(chckbxNewCheckBox))
-        			.addGap(18)
-        			.addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 429, Short.MAX_VALUE)
-        			.addPreferredGap(ComponentPlacement.RELATED)
-        			.addComponent(btnNewButton_2, GroupLayout.PREFERRED_SIZE, 38, GroupLayout.PREFERRED_SIZE)
-        			.addContainerGap())
-        );
-        
         
         
      // Dynamic table population
@@ -982,12 +1024,15 @@ public class AppSwingMain extends JFrame {
 		        model.setValueAt(isSelected, i, 0); 
 		    }
 		});
-
-
-		
-		
+        Main.setLayout(null);
         
         scrollPane.setViewportView(table_2);
+        Main.add(scrollPane);
+        Main.add(chckbxNewCheckBox);
+        Main.add(btnNewButton_1);
+        Main.add(textField);
+        Main.add(btnNewButton_2);
+        Main.add(lblNewLabel_1);
         scrollPane.setVisible(false);
         
         btnNewButton.addActionListener(new ActionListener() {
@@ -999,124 +1044,11 @@ public class AppSwingMain extends JFrame {
         });
         
         btnNewButton_1.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                // Criar o JDialog para a tela de carregamento
-                JDialog loadingDialog = new JDialog(AppSwingMain.this, "Carregando...", true);
-                LoadingScreen loadingScreen = new LoadingScreen();
-                loadingDialog.add(loadingScreen);
-                loadingDialog.setSize(450, 200);
-                loadingDialog.setLocationRelativeTo(AppSwingMain.this);
-                loadingDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-
-                // Configurar o callback para quando o carregamento terminar
-                loadingScreen.setOnComplete(() -> {
-                    SwingUtilities.invokeLater(() -> {
-                        loadingDialog.dispose();
-                        // Mostrar os componentes após o carregamento
-                        scrollPane.setVisible(true);
-                        chckbxNewCheckBox.setVisible(true);
-                        btnNewButton_2.setVisible(true);
-                    });
-                });
-
-                // Executar onBuscar em uma thread separada
-                SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-                    @Override
-                    protected Void doInBackground() throws Exception {
-                        try {
-                            onBuscar();
-                        } catch (Exception ex) {
-                            // Tratar erro na EDT
-                            SwingUtilities.invokeLater(() -> {
-                                loadingScreen.stopLoading();
-                                loadingDialog.dispose();
-                                JOptionPane.showMessageDialog(AppSwingMain.this, 
-                                    "Erro ao processar: " + ex.getMessage(), 
-                                    "Erro", JOptionPane.ERROR_MESSAGE);
-                                ex.printStackTrace();
-                            });
-                            throw ex; // Relançar para o método done detectar o erro
-                        }
-                        return null;
-                    }
-
-                    @Override
-                    protected void done() {
-                        SwingUtilities.invokeLater(() -> {
-                            try {
-                                // Verificar se houve erro (get() lança exceção se houver)
-                                get(); // Força a verificação de exceções do doInBackground
-                                // Aguardar para garantir que os arquivos foram criados
-                                Thread.sleep(2000);
-                                atualizarTabela();
-                                // Forçar a conclusão da LoadingScreen
-                                loadingScreen.completeLoading();
-                            } catch (InterruptedException ex) {
-                                Thread.currentThread().interrupt();
-                            } catch (Exception ex) {
-                                // Exceção já tratada no doInBackground, evitar duplicação
-                            }
-                        });
-                    }
-                };
-
-                // Iniciar a tela de carregamento e a tarefa
-                loadingScreen.startLoading();
-                worker.execute();
-                loadingDialog.setVisible(true);
-            }
-        });
-        
-        Main.setLayout(gl_Main);
-        
-        iniciarMonitoramentoArquivos();
-
-        
+            public void actionPerformed(ActionEvent e) {        
+        onBuscar();
+        Main.setLayout(null);        
+        iniciarMonitoramentoArquivos();        
     }
-
-	
-
-
-	private void toggleSelectAll(boolean selected, JCheckBox chckbxNewCheckBox) {
-		DefaultTableModel model = (DefaultTableModel) table_2.getModel();
-        
-		for (int row = 0; row < model.getRowCount(); row++) {
-	        model.setValueAt(selected, row, 0); // Coluna 0 é a única de checkbox
-	    }
-        
-        // Atualizar o texto do checkbox principal
-        if (selected) {
-        	chckbxNewCheckBox.setText("Deselecionar Todos");
-        } else {
-        	chckbxNewCheckBox.setText("Selecionar Todos");
-        }
-        
-        // Atualizar a visualizaÃ§Ã£o da tabela
-        table_2.repaint();
-		
-	}
-    
-	private boolean areAllSelected() {
-	    DefaultTableModel model = (DefaultTableModel) table_2.getModel();
-	    for (int i = 0; i < model.getRowCount(); i++) {
-	        // Verifique apenas a coluna 0
-	        if (!(Boolean) model.getValueAt(i, 0)) {
-	            return false;
-	        }
-	    }
-	    return true;
-	}
-    
-	private boolean areNoneSelected() {
-	    DefaultTableModel model = (DefaultTableModel) table_2.getModel();
-	    for (int i = 0; i < model.getRowCount(); i++) {
-	        // Verifique apenas a coluna 0
-	        if ((Boolean) model.getValueAt(i, 0)) {
-	            return false;
-	        }
-	    }
-	    return true;
-	}
     
     private void limparPastaOutput() {
         File outputFolder = new File(OUTPUT_PATH);
@@ -1134,59 +1066,114 @@ public class AppSwingMain extends JFrame {
     }
     
     private void onBuscar() {
-        String re = textField.getText().trim();
-        if (re.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Digite o RE");
+        String input = textField.getText().trim();
+        if (input.isEmpty()) {
+            JOptionPane.showMessageDialog(Main, "Digite o(s) RE(s)");
             return;
         }
 
         try {
-            // Limpar a pasta antes de gerar novos crachás
+            // Verificar se é entrada válida
+            List<String> res = REParser.parseREs(input);
+            if (res.isEmpty()) {
+                JOptionPane.showMessageDialog(Main, 
+                    "Nenhum RE válido encontrado!\n\nFormato aceito:\n" +
+                    "• Um RE: 12790\n" +
+                    "• Múltiplos REs: 12790,14359,14237", 
+                    "Entrada inválida", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            // Mostrar confirmação para múltiplos REs
+            if (res.size() > 1) {
+                String mensagem = String.format(
+                    "Foram encontrados %d REs válidos:\n\n%s\n\n" +
+                    "Deseja processar todos?", 
+                    res.size(), 
+                    String.join(", ", res.subList(0, Math.min(10, res.size()))) + 
+                    (res.size() > 10 ? "..." : "")
+                );
+                
+                int opcao = JOptionPane.showConfirmDialog(Main, mensagem, 
+                    "Confirmar Processamento", JOptionPane.YES_NO_OPTION);
+                
+                if (opcao != JOptionPane.YES_OPTION) {
+                    return;
+                }
+            }
+
+            // Limpar pasta antes de processar
             limparPastaOutput();
 
-            funcionarioControl.salvarFuncionario(re);            
+            // Criar e mostrar a tela de carregamento em uma nova thread
+            LoadingScreen loadingScreen = new LoadingScreen(null);
             
-            // Força uma atualização da tabela após processar
-            SwingUtilities.invokeLater(() -> {
-                try {
-                    Thread.sleep(2000); // Aguarda um pouco para garantir que os arquivos foram criados
-                    atualizarTabela();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+            // Usar SwingWorker para executar a tarefa em segundo plano
+            new SwingWorker<Void, String>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    // Aqui o processamento ocorre fora da Event Dispatch Thread (EDT)
+                    // A ProgressCallback é modificada para usar o publish() do SwingWorker
+                    funcionarioControl.processarEntrada(input, new FuncionarioControl.ProgressCallback() {
+                        @Override
+                        public void onProgress(int atual, int total, String mensagem) {
+                            int progress = (int) ((double) atual / total * 100);
+                            // O publish() envia os dados para a process() na EDT
+                            publish(String.format("%d/%d", progress, atual, total), mensagem);
+                        }
+                        
+                        @Override
+                        public void onComplete(int sucessos, int erros, String mensagemFinal) {
+                            // O onComplete é chamado pelo doInBackground()
+                            // A lógica final é tratada no done() do SwingWorker
+                        }
+                    });
+                    return null;
                 }
-            });
+
+                @Override
+                protected void process(List<String> chunks) {
+                    // Recebe os dados do publish() e atualiza a UI na EDT
+                    // chunks[0] = progresso, chunks[1] = mensagem
+                    String[] status = chunks.get(chunks.size() - 1).split("\\|");
+                    int progress = Integer.parseInt(status[0]);
+                    String mensagem = status[1];
+                    loadingScreen.setProgress(progress, mensagem);
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get(); // Lança qualquer exceção ocorrida em doInBackground()
+                        // Fecha a tela de carregamento
+                        loadingScreen.setComplete("Processamento concluído!");
+                        loadingScreen.close();
+                        
+                        // Atualizar a tabela e mostrar o resultado final
+                        atualizarTabela();
+                        scrollPane.setVisible(true);
+                        chckbxNewCheckBox.setVisible(true);
+                        btnNewButton_2.setVisible(true);
+                        JOptionPane.showMessageDialog(AppSwingMain.this, "Processamento Concluído", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                    } catch (Exception e) {
+                        loadingScreen.close();
+                        JOptionPane.showMessageDialog(AppSwingMain.this, "Erro ao processar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                        e.printStackTrace();
+                    }
+                }
+            }.execute();
+            
+            // Mostra a tela de carregamento imediatamente.
+            // Isso deve ser feito depois que o SwingWorker é iniciado.
+            loadingScreen.setVisible(true); // Esta chamada é blocante e só retornará quando o dialog for fechado
             
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Erro ao processar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(Main, "Erro ao processar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
     }
-
-    private List<File> getAllImageFiles() {
-        List<File> images = new ArrayList<>();
-        try {
-            File folder = new File(OUTPUT_PATH);
-            if (folder.exists() && folder.isDirectory()) {
-                File[] files = folder.listFiles((dir, name) ->
-                    name.toLowerCase().endsWith(".png") ||
-                    name.toLowerCase().endsWith(".jpg") ||
-                    name.toLowerCase().endsWith(".jpeg")
-                );
-
-                if (files != null) {
-                    Arrays.sort(files); // opcional: ordenar por nome
-                    images.addAll(Arrays.asList(files));
-                }
-            } else {
-                System.err.println("Pasta não encontrada: " + OUTPUT_PATH);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return images;
-    }
-
-
+    
+    
     
     public void pararMonitoramento() {
         try {
@@ -1204,12 +1191,12 @@ public class AppSwingMain extends JFrame {
     }
     
     // Sobrescreva o método de fechamento da janela
-    @Override
-    public void dispose() {
-        pararMonitoramento();
-        pararTimer();
-        super.dispose();
-    }
+    //@Override
+    //public void dispose() {
+        //pararMonitoramento();
+        //pararTimer();
+        //super.dispose();
+    //}
     
     @Override
     protected void finalize() throws Throwable {
@@ -1217,4 +1204,6 @@ public class AppSwingMain extends JFrame {
         pararTimer();
         super.finalize();
     }
+});
+	}
 }
