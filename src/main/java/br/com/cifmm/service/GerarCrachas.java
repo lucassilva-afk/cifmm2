@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,14 +16,20 @@ import br.com.cifmm.repository.FuncionarioRepository;
 
 @Service
 public class GerarCrachas {
+	
+	private static final String getResourcePath(String resourcePath) {
+		return Objects.requireNonNull(GerarCrachas.class.getClassLoader().getResource(resourcePath)).getPath();
+	}
 
     // DependÃªncias
     @Autowired private FuncionarioRepository funcionarioRepository;
     @Autowired private GerarQRCode gerarQRCodeService;
+    
+    private static final String PROJECT_ROOT = System.getProperty("user.dir");
 
     // ConfiguraÃ§Ãµes de caminhos
-    private static final String IMAGES_PATH = "C:/Users/lucas.santos/eclipse-workspace/cifmm-master/resources/images/";
-    private static final String OUTPUT_PATH = "output/";
+    private static final String IMAGES_PATH = getResourcePath("images/");
+    private static final String OUTPUT_PATH = PROJECT_ROOT + "/output/";
 
     // Posicionamento dos elementos no crachÃ¡
     private static final Point POSICAO_FOTO = new Point(41, 71);
@@ -35,8 +42,8 @@ public class GerarCrachas {
 
     // Fontes
     private static final String FONTE_PRINCIPAL = "Arial";
-    private static final String FONTE_CUSTOM_1 = "C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\fonts\\Museo500-Regular.otf";
-    private static final String FONTE_CUSTOM_2 = "C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\fonts\\Museo300-Regular.otf";
+    private static final String FONTE_CUSTOM_1 = getResourcePath("fonts/Museo500-Regular.otf");
+    private static final String FONTE_CUSTOM_2 = getResourcePath("fonts/Museo300-Regular.otf");
 
     public void gerarTodosCrachas() {
         criarDiretorioSaida();

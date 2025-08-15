@@ -9,6 +9,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Objects;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
@@ -25,9 +26,18 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 
 @Service
 public class GerarQRCode {
+	
+	private static final String getResourcePath(String resourcePath) {
+	    return Objects.requireNonNull(
+	    		GerarQRCode.class.getClassLoader().getResource(resourcePath)
+	    ).getPath();
+	}
 
-    private static final String IMAGES_PATH = "C:/Users/lucas.santos/eclipse-workspace/cifmm-master/resources/images/";
-    private static final String DOWNLOAD_PATH = "C:\\Users\\lucas.santos\\Downloads\\qrcode\\";
+    private static final String IMAGES_PATH = getResourcePath("images/");
+    private static final String DOWNLOAD_PATH = System.getProperty("user.home") + 
+            File.separator + "Downloads" + 
+            File.separator + "qrcode" + 
+            File.separator;
     private static final String QR_URL = "https://validar.mogimirim.sp.gov.br/admin/qr/fR8V0M839kpVXT1gXv8SSf5M0wsXEcAC0fyCEnMC6FOa9XC57F1X0qU0K5RM2Lpk";
     private static final int TIMEOUT_SEGUNDOS = 60; // Aumentado para 60 segundos
 
