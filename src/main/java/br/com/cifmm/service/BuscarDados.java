@@ -12,6 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.JOptionPane;
+
 @Component
 public class BuscarDados {
 
@@ -30,6 +32,12 @@ public class BuscarDados {
                 doc.body().html().substring(0, Math.min(500, doc.body().html().length())));
         } catch (IOException e) {
             System.err.println("Erro ao acessar a URL: " + e.getMessage());
+            JOptionPane.showMessageDialog(
+                    null,
+                    "Erro ao acessar a URL:\n" + e.getMessage(),
+                    "Falha de Conexão",
+                    JOptionPane.ERROR_MESSAGE
+                );
             throw new IOException("Falha ao conectar ao site: " + e.getMessage());
         }
 

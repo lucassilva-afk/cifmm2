@@ -1,5 +1,7 @@
 package br.com.cifmm.model;
 
+import java.util.Objects;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -86,5 +88,33 @@ public class FuncionarioModel {
 
     public void setApelido(String apelido) {
         this.apelido = apelido;
+    }
+
+    /**
+     * Retorna o caminho dinâmico para a foto do crachá da frente.
+     */
+    public String getCaminhoFotoFrente() {
+        if (this.re != null && !this.re.trim().isEmpty()) {
+            return System.getProperty("user.dir") + "/output/cracha_frente_" + this.re + ".png";
+        }
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        return "FuncionarioModel [re=" + re + ", nome=" + nome + ", cargo=" + cargo + ", secretaria=" + secretaria + ", apelido=" + apelido + "]";
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FuncionarioModel that = (FuncionarioModel) o;
+        return Objects.equals(re, that.re);
+    }
+    
+    @Override
+    public int hashCode() {
+        return Objects.hash(re);
     }
 }

@@ -18,12 +18,19 @@ import br.com.cifmm.service.GerarPDF.ItemImpressao;
 import br.com.cifmm.service.GerarPDF.OpcoesImpressao;
 import br.com.cifmm.util.REParser;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import br.com.cifmm.control.FuncionarioControl;
+import br.com.cifmm.repository.FuncionarioRepository;
+import br.com.cifmm.service.BuscarDados;
 import br.com.cifmm.service.GerarCrachas;
 import br.com.cifmm.service.GerarPDF;
+import br.com.cifmm.view.components.ButtonEditor;
+import br.com.cifmm.view.components.EditDialog;
 import br.com.cifmm.view.components.LoadingScreen;
+import br.com.cifmm.view.components.TabelaCallback;
+import jakarta.annotation.PostConstruct;
 
 import java.awt.*;
 import java.io.File;
@@ -40,12 +47,21 @@ import java.awt.event.ActionEvent;
 import javax.swing.SwingUtilities;
 
 @Component
-public class AppSwingMain extends JFrame {
+public class AppSwingMain extends JFrame implements TabelaCallback {
 
     private static final long serialVersionUID = 1L;
     private JPanel contentPane;
     private JTextField textField;
-    private final FuncionarioControl funcionarioControl;  
+    private final FuncionarioControl funcionarioControl;
+    
+    @Autowired
+    private FuncionarioRepository funcionarioRepository;
+
+    @Autowired 
+    private GerarCrachas gerarCrachas;
+    
+    @Autowired 
+    private BuscarDados buscarDados;
   
     
     private WatchService watchService;
@@ -53,25 +69,38 @@ public class AppSwingMain extends JFrame {
     private Timer timerAtualizacao; // Alternativa mais simples
     private long ultimaModificacaoPasta = 0;
     
-    private static final String OUTPUT_PATH = "C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\output";
+    private static final String PROJECT_ROOT = System.getProperty("user.dir");
+    
+    private static final String OUTPUT_PATH = PROJECT_ROOT + "/output/";
 
     
     private JTable table_2;
-    private JCheckBox chckbxNewCheckBox; // Adicionar como variÃ¡vel de instÃ¢ncia
+    private JCheckBox chckbxNewCheckBox;
+    private JScrollPane scrollPane;        
+    private JButton btnNewButton_2;
+	private JPanel Main; 
 
     /**
      * Create the frame.
      */
     public AppSwingMain(FuncionarioControl funcionarioControl) {
-    	setIconImage(Toolkit.getDefaultToolkit().getImage("C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\images\\Logo CIFMM.jpg"));
+    	setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/images/Logo CIFMM.jpg")));
     	setTitle("CIFMM 2.0");
         this.funcionarioControl = funcionarioControl;
-        initUI();
+        
         
         SwingUtilities.invokeLater(() -> {
             garantirPastaOutput();
             iniciarMonitoramentoArquivos();
             
+        });
+    }
+    
+    @PostConstruct // Ou você pode chamar manualmente após obter o bean do Spring
+    public void initializeUI() {
+        SwingUtilities.invokeLater(() -> {
+            initUI();
+            setVisible(true);
         });
     }
 
@@ -438,7 +467,7 @@ public class AppSwingMain extends JFrame {
             
             // Carregar e definir a imagem
             try {
-                ImageIcon icon = new ImageIcon("C:/Users/lucas.santos/eclipse-workspace/cifmm-master/resources/images/pencil-square.png");
+                ImageIcon icon = new ImageIcon(getClass().getResource("/images/pencil-square.png"));
                 // Redimensionar a imagem para ficar pequena
                 Image img = icon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
                 button.setIcon(new ImageIcon(img));
@@ -466,101 +495,7 @@ public class AppSwingMain extends JFrame {
     }
     
  // EDITOR - para quando clicar no botÃ£o
-    private static class ButtonEditor extends AbstractCellEditor implements TableCellEditor {
-        private static final long serialVersionUID = 1L;
-        private final JButton button;
-        private final JPanel panel;
-        private String label;
-        private int row;
-        private final JTable table;
-        private final String actionType;
-
-        public ButtonEditor(JTable table, String buttonText, String actionType) {
-            this.table = table;
-            this.actionType = actionType;
-            button = new JButton(buttonText);
-            
-            panel = new JPanel(new GridBagLayout());
-            panel.setOpaque(true);
-            
-            
-            // Configurar aparÃªncia do botÃ£o no editor
-            button.setOpaque(true);
-            button.setHorizontalAlignment(JLabel.CENTER);
-            button.setVerticalAlignment(JLabel.CENTER);
-            
-            panel.add(button, new GridBagConstraints());
-            
-            // Carregar imagem
-            try {
-                ImageIcon icon = new ImageIcon("C:/Users/lucas.santos/eclipse-workspace/cifmm-master/resources/images/pencil-square.png");
-                Image img = icon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
-                button.setIcon(new ImageIcon(img));
-            } catch (Exception e) {
-                System.err.println("Erro ao carregar imagem: " + e.getMessage());
-            }
-            
-            // Configurar tamanho
-            button.setPreferredSize(new Dimension(120, 30));
-
-            
-            button.addActionListener(e -> fireEditingStopped());
-        }
-
-        @Override
-        public java.awt.Component getTableCellEditorComponent(JTable table, Object value,
-                boolean isSelected, int row, int column) {
-            this.label = (value == null) ? "" : value.toString();
-            this.row = row;
-            
-            // Manter configuraÃ§Ãµes visuais
-            button.setText("Editar");
-            
-            return panel;
-        }
-
-        @Override
-        public Object getCellEditorValue() {
-            if (actionType.equals("SELECT")) {
-                table.setRowSelectionInterval(row, row);
-            } else if (actionType.equals("EDIT")) {
-                // Pegar o valor correto da primeira coluna (assumindo que Ã© onde estÃ¡ o RE)
-                
-                showEditDialog();
-            }
-            return label;
-        }
-
-        private void showEditDialog() {
-            JDialog dialog = new JDialog();
-            dialog.setTitle("Editar InformaÃ§Ãµes");
-            dialog.setModal(true);
-            dialog.setSize(400, 300);
-            dialog.getContentPane().setLayout(new BorderLayout());
-
-            JLabel label = new JLabel("Editar informaÃ§Ãµes");
-            label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setFont(new Font("Tahoma", Font.PLAIN, 16));
-            dialog.getContentPane().add(label, BorderLayout.CENTER);
-
-            JButton closeButton = new JButton("Fechar");
-            closeButton.addActionListener(e -> dialog.dispose());
-            dialog.getContentPane().add(closeButton, BorderLayout.SOUTH);
-
-            dialog.setLocationRelativeTo(null);
-            dialog.setVisible(true);
-        }
-
-        @Override
-        public boolean stopCellEditing() {
-            return super.stopCellEditing();
-        }
-
-        @Override
-        public boolean isCellEditable(EventObject e) {
-            return true;
-        }
-    }
+   
     
     
     // Method to get all image files from the output folder
@@ -676,9 +611,11 @@ public class AppSwingMain extends JFrame {
         }
     }
     
+    @Override
     public void atualizarTabela() {
+        // Este método já existe no seu App.java, só precisa implementar a interface
         try {
-            System.out.println("🔄 Atualizando tabela...");
+            System.out.println("🔄 Atualizando tabela via callback...");
             List<File> imageFiles = getImageFilesFromFolder(OUTPUT_PATH);
             DefaultTableModel model = (DefaultTableModel) table_2.getModel();
             
@@ -722,10 +659,10 @@ public class AppSwingMain extends JFrame {
             updateMasterCheckBox();
             table_2.revalidate();
             table_2.repaint();
-            System.out.println("✅ Tabela atualizada - " + imageFiles.size() + " arquivos encontrados");
+            System.out.println("✅ Tabela atualizada via callback - " + imageFiles.size() + " arquivos encontrados");
             
         } catch (Exception e) {
-            System.err.println("❌ Erro ao atualizar tabela: " + e.getMessage());
+            System.err.println("❌ Erro ao atualizar tabela via callback: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -802,253 +739,304 @@ public class AppSwingMain extends JFrame {
 	}
 
 
-	private void initUI() {			
-		
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setBounds(100, 100, 1391, 796);
-        contentPane = new JPanel();
-        contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
-        setContentPane(contentPane);
-        contentPane.setLayout(new BorderLayout(0, 0));
+	private void initUI() {
+	    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	    setBounds(100, 100, 1391, 796);
+	    contentPane = new JPanel();
+	    contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+	    setContentPane(contentPane);
+	    contentPane.setLayout(new BorderLayout(0, 0));
 
-        JPanel Header = new JPanel();
-        Header.setBorder(new LineBorder(new Color(192, 192, 192)));
-        contentPane.add(Header, BorderLayout.NORTH);
+	    // ===========================================
+	    // HEADER PANEL
+	    // ===========================================
+	    JPanel Header = new JPanel();
+	    Header.setBorder(new LineBorder(new Color(192, 192, 192)));
+	    contentPane.add(Header, BorderLayout.NORTH);
 
-        JLabel lblNewLabel = new JLabel("");
-        lblNewLabel.setIcon(new ImageIcon("C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\images\\logo.png"));
-        
-        JLabel lblNewLabel_2 = new JLabel("");
-        lblNewLabel_2.setHorizontalAlignment(SwingConstants.TRAILING);
-        lblNewLabel_2.setIcon(new ImageIcon("C:\\Users\\lucas.santos\\eclipse-workspace\\cifmm-master\\resources\\images\\Logo_Header.png"));
-        GroupLayout gl_Header = new GroupLayout(Header);
-        gl_Header.setHorizontalGroup(
-        	gl_Header.createParallelGroup(Alignment.LEADING)
-        		.addGroup(Alignment.TRAILING, gl_Header.createSequentialGroup()
-        			.addContainerGap()
-        			.addComponent(lblNewLabel_2, GroupLayout.PREFERRED_SIZE, 185, GroupLayout.PREFERRED_SIZE)
-        			.addPreferredGap(ComponentPlacement.RELATED, 908, Short.MAX_VALUE)
-        			.addComponent(lblNewLabel)
-        			.addContainerGap())
-        );
-        gl_Header.setVerticalGroup(
-        	gl_Header.createParallelGroup(Alignment.LEADING)
-        		.addGroup(gl_Header.createSequentialGroup()
-        			.addGap(5)
-        			.addGroup(gl_Header.createParallelGroup(Alignment.LEADING)
-        				.addComponent(lblNewLabel_2)
-        				.addComponent(lblNewLabel))
-        			.addContainerGap())
-        );
-        Header.setLayout(gl_Header);
+	    JLabel lblNewLabel = new JLabel("");
+	    lblNewLabel.setIcon(new ImageIcon(getClass().getResource("/images/logo.png")));
+	    
+	    JLabel lblNewLabel_2 = new JLabel("");
+	    lblNewLabel_2.setHorizontalAlignment(SwingConstants.TRAILING);
+	    lblNewLabel_2.setIcon(new ImageIcon(getClass().getResource("/images/Logo_Header.png")));
+	    
+	    GroupLayout gl_Header = new GroupLayout(Header);
+	    gl_Header.setHorizontalGroup(
+	        gl_Header.createParallelGroup(GroupLayout.Alignment.LEADING)
+	            .addGroup(GroupLayout.Alignment.TRAILING, gl_Header.createSequentialGroup()
+	                .addContainerGap()
+	                .addComponent(lblNewLabel_2, GroupLayout.PREFERRED_SIZE, 185, GroupLayout.PREFERRED_SIZE)
+	                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, 908, Short.MAX_VALUE)
+	                .addComponent(lblNewLabel)
+	                .addContainerGap())
+	    );
+	    gl_Header.setVerticalGroup(
+	        gl_Header.createParallelGroup(GroupLayout.Alignment.LEADING)
+	            .addGroup(gl_Header.createSequentialGroup()
+	                .addGap(5)
+	                .addGroup(gl_Header.createParallelGroup(GroupLayout.Alignment.LEADING)
+	                    .addComponent(lblNewLabel_2)
+	                    .addComponent(lblNewLabel))
+	                .addContainerGap())
+	    );
+	    Header.setLayout(gl_Header);
 
-        JPanel SideBar = new JPanel();
-        SideBar.setBorder(new MatteBorder(0, 1, 0, 1, new Color(192, 192, 192)));
-        FlowLayout flowLayout_1 = (FlowLayout) SideBar.getLayout();
-        flowLayout_1.setHgap(25);
-        contentPane.add(SideBar, BorderLayout.WEST);
+	    // ===========================================
+	    // SIDEBAR PANEL
+	    // ===========================================
+	    JPanel SideBar = new JPanel();
+	    SideBar.setBorder(new MatteBorder(0, 1, 0, 1, new Color(192, 192, 192)));
+	    FlowLayout flowLayout_1 = (FlowLayout) SideBar.getLayout();
+	    flowLayout_1.setHgap(25);
+	    contentPane.add(SideBar, BorderLayout.WEST);
 
-        JButton btnNewButton = new JButton("Gerar Crachas");
-        
-        btnNewButton.setIcon(null);
-        SideBar.add(btnNewButton);
+	    JButton btnNewButton = new JButton("Gerar Crachas");
+	    btnNewButton.setIcon(null);
+	    SideBar.add(btnNewButton);
 
-        JPanel Main = new JPanel();
-        contentPane.add(Main, BorderLayout.CENTER);
-        
-        textField = new JTextField();
-        textField.setBounds(10, 47, 1192, 41);
-        textField.setColumns(10);
-        textField.setVisible(false);
+	    // ===========================================
+	    // MAIN PANEL COM GROUPLAYOUT
+	    // ===========================================
+	    JPanel Main = new JPanel();
+	    contentPane.add(Main, BorderLayout.CENTER);
+	    
+	    // Criação dos componentes do Main
+	    textField = new JTextField();
+	    textField.setColumns(10);
+	    textField.setVisible(false);
 
-        JLabel lblNewLabel_1 = new JLabel("Digite o RE:");
-        lblNewLabel_1.setBounds(10, 11, 106, 25);
-        lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
-        lblNewLabel_1.setVisible(false);
+	    JLabel lblNewLabel_1 = new JLabel("Digite o RE:");
+	    lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
+	    lblNewLabel_1.setVisible(false);
 
-        JButton btnNewButton_1 = new JButton("Buscar");
-        btnNewButton_1.setBounds(1121, 99, 81, 23);
-        btnNewButton_1.setVisible(false);
-        
-        chckbxNewCheckBox = new JCheckBox("Selecionar Todos"); // Sem JCheckBox na frente!
-        chckbxNewCheckBox.setBounds(10, 95, 135, 27);
-        chckbxNewCheckBox.setFont(new Font("Tahoma", Font.PLAIN, 15));
-        chckbxNewCheckBox.addActionListener(e -> {
-            toggleSelectAll(chckbxNewCheckBox.isSelected(), chckbxNewCheckBox); // Usar chckbxNewCheckBox nos dois lugares
-        });
-        
-              
-        
-        chckbxNewCheckBox.setVisible(false);
-        // Tabela
-        
-        JScrollPane scrollPane = new JScrollPane();
-        scrollPane.setBounds(10, 129, 1101, 461);
-        
-        JButton btnNewButton_2 = new JButton("Gerar PDF");
-        btnNewButton_2.setBounds(1121, 567, 81, 23);
-        
-        btnNewButton_2.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                List<ItemImpressao> itensParaImprimir = obterItensParaImpressao();
-                
-                if (itensParaImprimir.isEmpty()) {
-                    JOptionPane.showMessageDialog(AppSwingMain.this, 
-                        "Por favor, selecione pelo menos um crachá para gerar o PDF!", 
-                        "Nenhuma Seleção", 
-                        JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-                
-                // Mostrar resumo do que será impresso
-                StringBuilder resumo = new StringBuilder();
-                resumo.append("Itens selecionados para impressão:\n\n");
-                
-                // Contar frentes e versos
-                int totalFrente = 0;
-                int totalVerso = 0;
-                
-                for (ItemImpressao item : itensParaImprimir) {
-                    String tipo = item.isFrente() ? "Frente" : "Verso";
-                    resumo.append("• ").append(item.getNomeArquivo()).append(" (").append(tipo).append(")\n");
-                    
-                    if (item.isFrente()) totalFrente++;
-                    else totalVerso++;
-                }
-                
-                resumo.append("\nResumo: ").append(totalFrente).append(" frente(s) + ")
-                       .append(totalVerso).append(" verso(s) = ").append(itensParaImprimir.size()).append(" página(s)");
-                resumo.append("\n\nDeseja continuar com a geração do PDF?");
-                
-                int opcao = JOptionPane.showConfirmDialog(
-                    AppSwingMain.this, 
-                    resumo.toString(), 
-                    "Confirmar Geração de PDF", 
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE
-                );
-                
-                if (opcao == JOptionPane.YES_OPTION) {
-                    // Executar geração em thread separada
-                    SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-                        @Override
-                        protected Void doInBackground() throws Exception {
-                            GerarPDF gerador = new GerarPDF();
-                            gerador.gerarPDFMultiplo(itensParaImprimir);
-                            return null;
-                        }
-                        
-                        @Override
-                        protected void done() {
-                            try {
-                                get(); // Verificar se houve exceção
-                                System.out.println("PDF gerado com sucesso!");
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                                JOptionPane.showMessageDialog(AppSwingMain.this,
-                                    "Erro ao gerar PDF: " + ex.getMessage(),
-                                    "Erro",
-                                    JOptionPane.ERROR_MESSAGE);
-                            }
-                        }
-                    };
-                    
-                    worker.execute();
-                }
-            }
-        });
-        
-        btnNewButton_2.setVisible(false);
-        
-        
-        
-     // Dynamic table population
-        List<File> imageFiles = getAllImageFiles();
+	    JButton btnNewButton_1 = new JButton("Buscar");
+	    btnNewButton_1.setVisible(false);
+	    
+	    chckbxNewCheckBox = new JCheckBox("Selecionar Todos");
+	    chckbxNewCheckBox.setFont(new Font("Tahoma", Font.PLAIN, 15));
+	    chckbxNewCheckBox.setVisible(false);
+	    
+	    // ScrollPane da tabela
+	    scrollPane = new JScrollPane();
+	    
+	    btnNewButton_2 = new JButton("Gerar PDF");
+	    btnNewButton_2.setVisible(false);
 
-        // Create data for the table
-        Object[][] data = new Object[imageFiles.size()][3];
-        for (int i = 0; i < imageFiles.size(); i++) {
-            File imageFile = imageFiles.get(i);
+	    // ===========================================
+	    // CONFIGURAÇÃO DA TABELA
+	    // ===========================================
+	    List<File> imageFiles = getAllImageFiles();
 
-            data[i][0] = true;  // Frente
-            data[i][0] = true;  // Verso
-            // --- ALTERAÇÃO AQUI ---
-            // Cria um ImageIcon a partir do caminho do arquivo
-            ImageIcon icon = new ImageIcon(imageFile.getAbsolutePath());
-            // Armazena o caminho na descrição do ícone, o que pode ser útil mais tarde
-            icon.setDescription(imageFile.getAbsolutePath());
-            // Adiciona o ImageIcon diretamente no array de dados
-            data[i][1] = icon;
-            // --- FIM DA ALTERAÇÃO ---
-            data[i][2] = "Editar"; // Botão ou texto
-        }
+	    // Create data for the table
+	    Object[][] data = new Object[imageFiles.size()][3];
+	    for (int i = 0; i < imageFiles.size(); i++) {
+	        File imageFile = imageFiles.get(i);
+	        data[i][0] = true;  // Checkbox
+	        
+	        // Criar ImageIcon para a imagem
+	        ImageIcon icon = new ImageIcon(imageFile.getAbsolutePath());
+	        icon.setDescription(imageFile.getAbsolutePath());
+	        data[i][1] = icon;
+	        data[i][2] = "Editar"; // Botão
+	    }
 
-        table_2 = new JTable();
-        // Atualize o modelo da tabela para incluir a nova coluna
-     // O array de colunas agora é: [Selecionar, Fotos, Editar]
-        table_2.setModel(new DefaultTableModel(data, new String[] {
-            "Selecionar", "Fotos", "Editar"
-        }) {
-            @Override
-            public Class<?> getColumnClass(int columnIndex) {
-                // A primeira coluna (índice 0) é a de checkbox
-                if (columnIndex == 0) {
-                    return Boolean.class;
-                }
-                return super.getColumnClass(columnIndex);
-            }
-        });
-        
-		// Configuração do renderizador e editor
-		table_2.getColumnModel().getColumn(0).setCellRenderer(new CheckBoxRenderer());
-		table_2.getColumnModel().getColumn(0).setCellEditor(new CheckBoxEditor(this));	
-		table_2.getColumnModel().getColumn(1).setCellRenderer(new ImageRenderer());
-		table_2.getColumnModel().getColumn(2).setCellRenderer(new ButtonRenderer());
-		table_2.getColumnModel().getColumn(2).setCellEditor(new ButtonEditor(table_2, "", "EDIT"));
+	    table_2 = new JTable();
+	    table_2.setModel(new DefaultTableModel(data, new String[] {
+	        "Selecionar", "Fotos", "Editar"
+	    }) {
+	        @Override
+	        public Class<?> getColumnClass(int columnIndex) {
+	            if (columnIndex == 0) {
+	                return Boolean.class;
+	            }
+	            return super.getColumnClass(columnIndex);
+	        }
+	    });
+	    
+	    // Configuração do renderizador e editor
+	    table_2.getColumnModel().getColumn(0).setCellRenderer(new CheckBoxRenderer());
+	    table_2.getColumnModel().getColumn(0).setCellEditor(new CheckBoxEditor(this));	
+	    table_2.getColumnModel().getColumn(1).setCellRenderer(new ImageRenderer());
+	    table_2.getColumnModel().getColumn(2).setCellRenderer(new ButtonRenderer());
+	    
+	    ButtonEditor buttonEditor = new ButtonEditor(
+	            table_2, 
+	            "Editar", 
+	            "EDIT",
+	            funcionarioRepository,
+	            gerarCrachas,
+	            buscarDados,
+	            this  // <- Passa esta instância como callback
+	        );
+	    
+	    table_2.getColumnModel().getColumn(2).setCellEditor(buttonEditor);	    
 
-		
-		// Configura a largura das colunas
-		table_2.getColumnModel().getColumn(0).setPreferredWidth(50);
-		table_2.getColumnModel().getColumn(1).setPreferredWidth(50);
-		table_2.getColumnModel().getColumn(2).setPreferredWidth(500);
-		table_2.getColumnModel().getColumn(2).setPreferredWidth(50);
-		table_2.setRowHeight(370);
-		
-		chckbxNewCheckBox.addActionListener(e -> {
-		    boolean isSelected = chckbxNewCheckBox.isSelected();
-		    
-		    DefaultTableModel model = (DefaultTableModel) table_2.getModel();
-		    
-		    for (int i = 0; i < model.getRowCount(); i++) {
-		        // Agora você define o valor apenas para a coluna de checkbox (índice 0)
-		        model.setValueAt(isSelected, i, 0); 
-		    }
-		});
-        Main.setLayout(null);
-        
-        scrollPane.setViewportView(table_2);
-        Main.add(scrollPane);
-        Main.add(chckbxNewCheckBox);
-        Main.add(btnNewButton_1);
-        Main.add(textField);
-        Main.add(btnNewButton_2);
-        Main.add(lblNewLabel_1);
-        scrollPane.setVisible(false);
-        
-        btnNewButton.addActionListener(new ActionListener() {
-        	public void actionPerformed(ActionEvent e) {
-        		lblNewLabel_1.setVisible(true);
-        		textField.setVisible(true);
-        		btnNewButton_1.setVisible(true);
-        	}
-        });
-        
-        btnNewButton_1.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {        
-        onBuscar();
-        Main.setLayout(null);        
-        iniciarMonitoramentoArquivos();        
-    }
+	    // Configura a largura das colunas
+	    table_2.getColumnModel().getColumn(0).setPreferredWidth(100);
+	    table_2.getColumnModel().getColumn(1).setPreferredWidth(400);
+	    table_2.getColumnModel().getColumn(2).setPreferredWidth(100);
+	    table_2.setRowHeight(370);
+	    
+	    scrollPane.setViewportView(table_2);
+	    scrollPane.setVisible(false);
+
+	    // ===========================================
+	    // GROUPLAYOUT PARA O PAINEL MAIN
+	    // ===========================================
+	    GroupLayout gl_Main = new GroupLayout(Main);
+	    Main.setLayout(gl_Main);
+
+	    // Layout Horizontal (esquerda para direita)
+	    gl_Main.setHorizontalGroup(
+	        gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+	            .addGroup(gl_Main.createSequentialGroup()
+	                .addContainerGap()
+	                .addGroup(gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+	                    // Label "Digite o RE:"
+	                    .addComponent(lblNewLabel_1)
+	                    // Campo de texto (ocupa toda largura disponível)
+	                    .addComponent(textField, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+	                    // Linha com checkbox e botão buscar
+	                    .addGroup(gl_Main.createSequentialGroup()
+	                        .addComponent(chckbxNewCheckBox)
+	                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+	                        .addComponent(btnNewButton_1))
+	                    // ScrollPane da tabela
+	                    .addGroup(gl_Main.createSequentialGroup()
+	                        .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 1000, Short.MAX_VALUE)
+	                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+	                        .addComponent(btnNewButton_2)))
+	                .addContainerGap())
+	    );
+
+	    // Layout Vertical (cima para baixo)
+	    gl_Main.setVerticalGroup(
+	        gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+	            .addGroup(gl_Main.createSequentialGroup()
+	                .addContainerGap()
+	                // Label "Digite o RE:"
+	                .addComponent(lblNewLabel_1)
+	                .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+	                // Campo de texto
+	                .addComponent(textField, GroupLayout.PREFERRED_SIZE, 41, GroupLayout.PREFERRED_SIZE)
+	                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+	                // Linha com checkbox e botão buscar
+	                .addGroup(gl_Main.createParallelGroup(GroupLayout.Alignment.BASELINE)
+	                    .addComponent(chckbxNewCheckBox)
+	                    .addComponent(btnNewButton_1))
+	                .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+	                // ScrollPane (ocupa o espaço restante) e botão PDF
+	                .addGroup(gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+	                    .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 500, Short.MAX_VALUE)
+	                    .addGroup(GroupLayout.Alignment.TRAILING, gl_Main.createSequentialGroup()
+	                        .addGap(0, 0, Short.MAX_VALUE)
+	                        .addComponent(btnNewButton_2)))
+	                .addContainerGap())
+	    );
+
+	    // ===========================================
+	    // EVENT LISTENERS
+	    // ===========================================
+	    
+	    // Listener do checkbox "Selecionar Todos"
+	    chckbxNewCheckBox.addActionListener(e -> {
+	        boolean isSelected = chckbxNewCheckBox.isSelected();
+	        DefaultTableModel model = (DefaultTableModel) table_2.getModel();
+	        
+	        for (int i = 0; i < model.getRowCount(); i++) {
+	            model.setValueAt(isSelected, i, 0); 
+	        }
+	    });
+	    
+	    // Listener do botão "Gerar Crachas"
+	    btnNewButton.addActionListener(new ActionListener() {
+	        public void actionPerformed(ActionEvent e) {
+	            lblNewLabel_1.setVisible(true);
+	            textField.setVisible(true);
+	            btnNewButton_1.setVisible(true);
+	        }
+	    });
+	    
+	    // Listener do botão "Buscar"
+	    btnNewButton_1.addActionListener(new ActionListener() {
+	        public void actionPerformed(ActionEvent e) {        
+	            onBuscar();
+	            iniciarMonitoramentoArquivos();	            
+	        }
+	    });
+
+	    // Listener do botão "Gerar PDF"
+	    btnNewButton_2.addActionListener(new ActionListener() {
+	        public void actionPerformed(ActionEvent e) {
+	            List<ItemImpressao> itensParaImprimir = obterItensParaImpressao();
+	            
+	            if (itensParaImprimir.isEmpty()) {
+	                JOptionPane.showMessageDialog(AppSwingMain.this, 
+	                    "Por favor, selecione pelo menos um crachá para gerar o PDF!", 
+	                    "Nenhuma Seleção", 
+	                    JOptionPane.WARNING_MESSAGE);
+	                return;
+	            }
+	            
+	            // Mostrar resumo do que será impresso
+	            StringBuilder resumo = new StringBuilder();
+	            resumo.append("Itens selecionados para impressão:\n\n");
+	            
+	            // Contar frentes e versos
+	            int totalFrente = 0;
+	            int totalVerso = 0;
+	            
+	            for (ItemImpressao item : itensParaImprimir) {
+	                String tipo = item.isFrente() ? "Frente" : "Verso";
+	                resumo.append("• ").append(item.getNomeArquivo()).append(" (").append(tipo).append(")\n");
+	                
+	                if (item.isFrente()) totalFrente++;
+	                else totalVerso++;
+	            }
+	            
+	            resumo.append("\nResumo: ").append(totalFrente).append(" frente(s) + ")
+	                   .append(totalVerso).append(" verso(s) = ").append(itensParaImprimir.size()).append(" página(s)");
+	            resumo.append("\n\nDeseja continuar com a geração do PDF?");
+	            
+	            int opcao = JOptionPane.showConfirmDialog(
+	                AppSwingMain.this, 
+	                resumo.toString(), 
+	                "Confirmar Geração de PDF", 
+	                JOptionPane.YES_NO_OPTION,
+	                JOptionPane.QUESTION_MESSAGE
+	            );
+	            
+	            if (opcao == JOptionPane.YES_OPTION) {
+	                // Executar geração em thread separada
+	                SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+	                    @Override
+	                    protected Void doInBackground() throws Exception {
+	                        GerarPDF gerador = new GerarPDF();
+	                        gerador.gerarPDFMultiplo(itensParaImprimir);
+	                        return null;
+	                    }
+	                    
+	                    @Override
+	                    protected void done() {
+	                        try {
+	                            get(); // Verificar se houve exceção
+	                            System.out.println("PDF gerado com sucesso!");
+	                        } catch (Exception ex) {
+	                            ex.printStackTrace();
+	                            JOptionPane.showMessageDialog(AppSwingMain.this,
+	                                "Erro ao gerar PDF: " + ex.getMessage(),
+	                                "Erro",
+	                                JOptionPane.ERROR_MESSAGE);
+	                        }
+	                    }
+	                };
+	                
+	                worker.execute();
+	            }
+	        }
+	    });
+	}
     
     private void limparPastaOutput() {
         File outputFolder = new File(OUTPUT_PATH);
@@ -1068,35 +1056,31 @@ public class AppSwingMain extends JFrame {
     private void onBuscar() {
         String input = textField.getText().trim();
         if (input.isEmpty()) {
-            JOptionPane.showMessageDialog(Main, "Digite o(s) RE(s)");
+            JOptionPane.showMessageDialog(this, "Digite o(s) RE(s)");
             return;
         }
 
         try {
-            // Verificar se é entrada válida
             List<String> res = REParser.parseREs(input);
             if (res.isEmpty()) {
-                JOptionPane.showMessageDialog(Main, 
+                JOptionPane.showMessageDialog(this,
                     "Nenhum RE válido encontrado!\n\nFormato aceito:\n" +
                     "• Um RE: 12790\n" +
-                    "• Múltiplos REs: 12790,14359,14237", 
+                    "• Múltiplos REs: 12790,14359,14237",
                     "Entrada inválida", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            
-            // Mostrar confirmação para múltiplos REs
+
             if (res.size() > 1) {
                 String mensagem = String.format(
                     "Foram encontrados %d REs válidos:\n\n%s\n\n" +
-                    "Deseja processar todos?", 
-                    res.size(), 
-                    String.join(", ", res.subList(0, Math.min(10, res.size()))) + 
+                    "Deseja processar todos?",
+                    res.size(),
+                    String.join(", ", res.subList(0, Math.min(10, res.size()))) +
                     (res.size() > 10 ? "..." : "")
                 );
-                
-                int opcao = JOptionPane.showConfirmDialog(Main, mensagem, 
+                int opcao = JOptionPane.showConfirmDialog(this, mensagem,
                     "Confirmar Processamento", JOptionPane.YES_NO_OPTION);
-                
                 if (opcao != JOptionPane.YES_OPTION) {
                     return;
                 }
@@ -1105,70 +1089,100 @@ public class AppSwingMain extends JFrame {
             // Limpar pasta antes de processar
             limparPastaOutput();
 
-            // Criar e mostrar a tela de carregamento em uma nova thread
-            LoadingScreen loadingScreen = new LoadingScreen(null);
+            // Criar a tela de carregamento (agora não-modal)
+            LoadingScreen loadingScreen = new LoadingScreen(this);
             
+            // Desabilitar a janela principal para simular o comportamento modal
+            this.setEnabled(false);
+
             // Usar SwingWorker para executar a tarefa em segundo plano
-            new SwingWorker<Void, String>() {
+            SwingWorker<Void, String[]> worker = new SwingWorker<Void, String[]>() {
                 @Override
                 protected Void doInBackground() throws Exception {
-                    // Aqui o processamento ocorre fora da Event Dispatch Thread (EDT)
-                    // A ProgressCallback é modificada para usar o publish() do SwingWorker
                     funcionarioControl.processarEntrada(input, new FuncionarioControl.ProgressCallback() {
                         @Override
                         public void onProgress(int atual, int total, String mensagem) {
+                            // 📊 Calcular progresso baseado nos valores recebidos
                             int progress = (int) ((double) atual / total * 100);
-                            // O publish() envia os dados para a process() na EDT
-                            publish(String.format("%d/%d", progress, atual, total), mensagem);
+                            
+                            // 🐛 DEBUG: Imprimir valores recebidos
+                            System.out.println("📊 Callback recebido - atual: " + atual + ", total: " + total + ", progress: " + progress + "% - " + mensagem);
+                            
+                            // Publica o progresso e a mensagem como um array de String
+                            publish(new String[]{String.valueOf(progress), mensagem});
                         }
-                        
+
                         @Override
                         public void onComplete(int sucessos, int erros, String mensagemFinal) {
-                            // O onComplete é chamado pelo doInBackground()
-                            // A lógica final é tratada no done() do SwingWorker
+                            System.out.println("✅ Callback onComplete: " + sucessos + " sucessos, " + erros + " erros");
+                            // A lógica final é tratada no done()
                         }
                     });
                     return null;
                 }
 
                 @Override
-                protected void process(List<String> chunks) {
-                    // Recebe os dados do publish() e atualiza a UI na EDT
-                    // chunks[0] = progresso, chunks[1] = mensagem
-                    String[] status = chunks.get(chunks.size() - 1).split("\\|");
-                    int progress = Integer.parseInt(status[0]);
-                    String mensagem = status[1];
-                    loadingScreen.setProgress(progress, mensagem);
+                protected void process(List<String[]> chunks) {
+                    // 📈 Processar todas as atualizações recebidas
+                    for (String[] update : chunks) {
+                        try {
+                            int progress = Integer.parseInt(update[0]);
+                            String message = update[1];
+                            
+                            System.out.println("📈 Atualizando UI: " + progress + "% - " + message);
+                            loadingScreen.setProgress(progress, message);
+                            
+                        } catch (NumberFormatException e) {
+                            System.err.println("⚠️ Erro ao parsear progresso: " + update[0]);
+                        }
+                    }
                 }
 
                 @Override
                 protected void done() {
                     try {
-                        get(); // Lança qualquer exceção ocorrida em doInBackground()
-                        // Fecha a tela de carregamento
+                        get(); // Verifica se houve exceções no doInBackground()
                         loadingScreen.setComplete("Processamento concluído!");
-                        loadingScreen.close();
                         
-                        // Atualizar a tabela e mostrar o resultado final
+                        // ⏱️ Pequeno delay para mostrar mensagem final
+                        try {
+                            Thread.sleep(1500);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        
+                        // ✅ SÓ MOSTRA OS ELEMENTOS SE TUDO DEU CERTO
                         atualizarTabela();
-                        scrollPane.setVisible(true);
                         chckbxNewCheckBox.setVisible(true);
+                        scrollPane.setVisible(true); // ✅ Agora vai funcionar!
                         btnNewButton_2.setVisible(true);
-                        JOptionPane.showMessageDialog(AppSwingMain.this, "Processamento Concluído", "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                        
+                        System.out.println("✅ Elementos da UI exibidos com sucesso!");
+                        
                     } catch (Exception e) {
-                        loadingScreen.close();
-                        JOptionPane.showMessageDialog(AppSwingMain.this, "Erro ao processar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(AppSwingMain.this, 
+                            "Erro ao processar: " + e.getMessage(), 
+                            "Erro", 
+                            JOptionPane.ERROR_MESSAGE);
                         e.printStackTrace();
+                        System.err.println("❌ Erro no processamento, elementos não serão exibidos");
+                    } finally {
+                        // LIMPEZA SEMPRE EXECUTADA
+                        loadingScreen.close();
+                        AppSwingMain.this.setEnabled(true);
+                        AppSwingMain.this.toFront();
+                        System.out.println("🧹 Limpeza do SwingWorker concluída");
                     }
                 }
-            }.execute();
+            };
             
-            // Mostra a tela de carregamento imediatamente.
-            // Isso deve ser feito depois que o SwingWorker é iniciado.
-            loadingScreen.setVisible(true); // Esta chamada é blocante e só retornará quando o dialog for fechado
-            
+            worker.execute(); // Inicia o worker
+            loadingScreen.setVisible(true); // Mostra a tela (não vai bloquear a EDT)
+
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(Main, "Erro ao processar: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            // Garante que a janela principal seja reabilitada em caso de erro inicial
+            this.setEnabled(true);
+            JOptionPane.showMessageDialog(this, "Erro ao iniciar o processamento: " + e.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
     }
@@ -1204,6 +1218,4 @@ public class AppSwingMain extends JFrame {
         pararTimer();
         super.finalize();
     }
-});
-	}
 }

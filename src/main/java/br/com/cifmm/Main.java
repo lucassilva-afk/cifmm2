@@ -40,7 +40,7 @@ public class Main {
                 try {
                     System.out.println("Abrindo a interface gráfica...");
                     AppSwingMain app = context.getBean(AppSwingMain.class);
-                    app.setVisible(true);
+                    app.initializeUI();
                     System.out.println("Interface gráfica aberta com sucesso.");
                 } catch (Exception e) {
                     System.err.println("Erro ao abrir interface gráfica: " + e.getMessage());

@@ -73,22 +73,65 @@ public class FuncionarioControl {
     /**
      * Processa um único RE (reutiliza método atual)
      */
+    /**
+     * Processa um único RE com progresso mais detalhado
+     */
     private RelatorioProcessamento processarUnico(String re, ProgressCallback callback) {
         try {
+            // 🔄 Etapa 1: Iniciando
             if (callback != null) {
-                callback.onProgress(0, 1, "Processando RE: " + re);
+                callback.onProgress(0, 100, "Iniciando processamento do RE: " + re);
+                Thread.sleep(200); // Pequena pausa para visualizar
             }
             
-            salvarFuncionario(re); // Usa método existente
+            // 🔄 Etapa 2: Buscando dados
+            if (callback != null) {
+                callback.onProgress(20, 100, "Buscando dados do funcionário: " + re);
+                Thread.sleep(300);
+            }
+            
+            // Buscar dados do funcionário
+            var funcionario = buscarDados.buscarPorRe(re);
+            
+            // 🔄 Etapa 3: Dados encontrados
+            if (callback != null) {
+                callback.onProgress(50, 100, "Dados encontrados: " + funcionario.getNome());
+                Thread.sleep(200);
+            }
+            
+            // 🔄 Etapa 4: Salvando no banco
+            if (callback != null) {
+                callback.onProgress(70, 100, "Salvando funcionário no banco de dados...");
+                Thread.sleep(300);
+            }
+            
+            funcionarioService.salvar(funcionario);
+            System.out.println("[OK] Funcionário salvo: " + funcionario.getNome());
+            
+            // 🔄 Etapa 5: Gerando crachá
+            if (callback != null) {
+                callback.onProgress(85, 100, "Gerando crachá para " + funcionario.getNome());
+                Thread.sleep(400);
+            }
+            
+            gerarCrachas.gerarCracha(funcionario);
+            System.out.println("[OK] Crachá gerado para o funcionário: " + funcionario.getNome());
+            
+            // 🔄 Etapa 6: Finalizando
+            if (callback != null) {
+                callback.onProgress(100, 100, "Processamento concluído!");
+                Thread.sleep(200);
+            }
             
             if (callback != null) {
-                callback.onComplete(1, 0, "Processamento concluído!");
+                callback.onComplete(1, 0, "Processamento concluído com sucesso!");
             }
             
             return new RelatorioProcessamento(1, 1, 0);
             
         } catch (Exception e) {
             if (callback != null) {
+                callback.onProgress(100, 100, "Erro: " + e.getMessage());
                 callback.onComplete(0, 1, "Erro: " + e.getMessage());
             }
             return new RelatorioProcessamento(1, 0, 1);
