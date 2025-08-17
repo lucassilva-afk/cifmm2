@@ -27,12 +27,7 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 @Service
 public class GerarQRCode {
 	
-	private static final String IMAGES_PATH = System.getProperty("user.dir") + 
-	        File.separator + "src" + 
-	        File.separator + "main" + 
-	        File.separator + "resources" + 
-	        File.separator + "images" + 
-	        File.separator;
+	private static final String IMAGES_PATH = "resources/images/";
 	
     private static final String DOWNLOAD_PATH = System.getProperty("user.home") + 
             File.separator + "Downloads" + 

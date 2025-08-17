@@ -3,6 +3,7 @@ package br.com.cifmm.view.components;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -26,22 +27,22 @@ public class ButtonEditor extends DefaultCellEditor {
     // Dependências passadas via construtor
     private FuncionarioRepository funcionarioRepository;
     private GerarCrachas gerarCrachas;
-    private BuscarDados buscarDados; // Adicionado BuscarDados
-    private TabelaCallback tabelaCallback; // Callback para atualizar tabela
+    private BuscarDados buscarDados;
+    private TabelaCallback tabelaCallback;
 
     public ButtonEditor(JTable table, String label, String buttonType, 
                        FuncionarioRepository funcionarioRepository, 
                        GerarCrachas gerarCrachas,
                        BuscarDados buscarDados,
-                       TabelaCallback tabelaCallback) { // Adicionado callback
+                       TabelaCallback tabelaCallback) {
         super(new JCheckBox());
         this.table = table;
         this.label = label;
         this.buttonType = buttonType;
         this.funcionarioRepository = funcionarioRepository;
         this.gerarCrachas = gerarCrachas;
-        this.buscarDados = buscarDados; // Inicialização
-        this.tabelaCallback = tabelaCallback; // Inicialização do callback
+        this.buscarDados = buscarDados;
+        this.tabelaCallback = tabelaCallback;
         
         button = new JButton();
         button.setOpaque(true);
@@ -162,8 +163,8 @@ public class ButtonEditor extends DefaultCellEditor {
             // 2. Busca dados atualizados do SITE (não do banco)
             FuncionarioModel funcionarioAtualizado = buscarDados.buscarPorRe(re);
             
-            // 3. Pega o apelido do banco (que foi salvo recentemente)
-            FuncionarioModel funcionarioBanco = funcionarioRepository.findByRe(re);
+            // 3. Pega o apelido do banco (que foi salvo recentemente) - FIXED: Handle multiple results
+            FuncionarioModel funcionarioBanco = buscarFuncionarioComTratamentoDeErro(re);
             if (funcionarioBanco != null && funcionarioBanco.getApelido() != null) {
                 funcionarioAtualizado.setApelido(funcionarioBanco.getApelido());
             }
@@ -176,6 +177,35 @@ public class ButtonEditor extends DefaultCellEditor {
         } catch (Exception e) {
             System.err.println("❌ Erro ao regenerar crachá: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Busca funcionário tratando o caso de múltiplos resultados
+     */
+    private FuncionarioModel buscarFuncionarioComTratamentoDeErro(String re) {
+        try {
+            // Tenta buscar com o método original
+            return funcionarioRepository.findByRe(re);
+            
+        } catch (org.springframework.dao.IncorrectResultSizeDataAccessException e) {
+            // Se houver múltiplos resultados, busca todos e pega o primeiro
+            System.out.println("⚠️ ATENÇÃO: Múltiplos registros encontrados para RE: " + re + ". Usando o primeiro encontrado.");
+            
+            try {
+                List<FuncionarioModel> funcionarios = funcionarioRepository.findAllByRe(re);
+                if (!funcionarios.isEmpty()) {
+                    return funcionarios.get(0); // Retorna o primeiro
+                }
+            } catch (Exception ex) {
+                System.err.println("❌ Erro ao buscar funcionários por RE: " + ex.getMessage());
+            }
+            
+            return null;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Erro geral ao buscar funcionário: " + e.getMessage());
+            return null;
         }
     }
     

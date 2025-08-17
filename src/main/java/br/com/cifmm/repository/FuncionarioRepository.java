@@ -8,27 +8,15 @@ import java.util.List;
 import br.com.cifmm.model.FuncionarioModel;
 
 @Repository
+//In your FuncionarioRepository interface
 public interface FuncionarioRepository extends JpaRepository<FuncionarioModel, Long> {
-    
-    /**
-     * Busca funcionário pelo RE (retorna o primeiro encontrado se houver duplicatas)
-     * @param re Número do RE do funcionário
-     * @return FuncionarioModel ou null se não encontrado
-     */
-    Optional<FuncionarioModel> findFirstByRe(String re);
-    FuncionarioModel findByRe(String re);
-    
-    /**
-     * Busca todos os funcionários pelo RE
-     * @param re Número do RE do funcionário
-     * @return Lista de FuncionarioModel
-     */
-    List<FuncionarioModel> findAllByRe(String re);
-    
-    /**
-     * Verifica se existe funcionário com o RE informado
-     * @param re Número do RE
-     * @return true se existe, false caso contrário
-     */
-    boolean existsByRe(String re);
+ 
+ // Change this method to return Optional to handle multiple results
+ Optional<FuncionarioModel> findFirstByRe(String re);
+ 
+ // Or if you want to get all records with the same RE
+ List<FuncionarioModel> findAllByRe(String re);
+ 
+ // Keep the original method but handle the exception in the calling code
+ FuncionarioModel findByRe(String re);
 }

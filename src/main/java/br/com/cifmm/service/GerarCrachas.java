@@ -29,12 +29,7 @@ public class GerarCrachas {
     private static final String PROJECT_ROOT = System.getProperty("user.dir");
 
     // ConfiguraÃ§Ãµes de caminhos
-    private static final String IMAGES_PATH = System.getProperty("user.dir") + 
-            File.separator + "src" + 
-            File.separator + "main" + 
-            File.separator + "resources" + 
-            File.separator + "images" + 
-            File.separator;
+    private static final String IMAGES_PATH = "resources/images/";
     private static final String OUTPUT_PATH = PROJECT_ROOT + "/output/";
 
     // Posicionamento dos elementos no crachÃ¡
@@ -48,9 +43,8 @@ public class GerarCrachas {
 
     // Fontes
     private static final String FONTE_PRINCIPAL = "Arial";
-    private static final String FONTE_CUSTOM_1 = getResourcePath("fonts/Museo500-Regular.otf");
-    private static final String FONTE_CUSTOM_2 = getResourcePath("fonts/Museo300-Regular.otf");
-
+    private static final String FONTE_CUSTOM_1 = "resources/fonts/Museo500-Regular.otf";
+    private static final String FONTE_CUSTOM_2 = "resources/fonts/Museo300-Regular.otf";
     public void gerarTodosCrachas() {
         criarDiretorioSaida();
         List<FuncionarioModel> funcionarios = funcionarioRepository.findAll();
