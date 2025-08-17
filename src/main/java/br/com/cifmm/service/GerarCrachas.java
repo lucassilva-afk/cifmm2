@@ -7,6 +7,7 @@ import java.util.List;
 import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,12 @@ public class GerarCrachas {
     private static final String PROJECT_ROOT = System.getProperty("user.dir");
 
     // ConfiguraÃ§Ãµes de caminhos
-    private static final String IMAGES_PATH = getResourcePath("images/");
+    private static final String IMAGES_PATH = System.getProperty("user.dir") + 
+            File.separator + "src" + 
+            File.separator + "main" + 
+            File.separator + "resources" + 
+            File.separator + "images" + 
+            File.separator;
     private static final String OUTPUT_PATH = PROJECT_ROOT + "/output/";
 
     // Posicionamento dos elementos no crachÃ¡
@@ -128,6 +134,24 @@ public class GerarCrachas {
         BufferedImage foto = carregarFotoFuncionario(matricula);
         BufferedImage qrCode = carregarImagem(matricula + ".png");
 
+        // Busca o funcionário no banco para verificar se tem apelido
+        // CORREÇÃO: Usando Optional para evitar erro de múltiplos resultados
+        String apelido = null;
+        try {
+            Optional<FuncionarioModel> funcionarioOpt = funcionarioRepository.findFirstByRe(matricula);
+            if (funcionarioOpt.isPresent()) {
+                FuncionarioModel funcionario = funcionarioOpt.get();
+                apelido = funcionario.getApelido();
+                System.out.println("Funcionário encontrado: " + funcionario.getNome() + ", Apelido: " + apelido);
+            } else {
+                System.out.println("Nenhum funcionário encontrado com RE: " + matricula);
+            }
+        } catch (Exception e) {
+            System.err.println("Erro ao buscar funcionário com RE " + matricula + ": " + e.getMessage());
+            // Continua sem apelido em caso de erro
+            apelido = null;
+        }
+
         // Cria o Graphics2D
         Graphics2D g = template.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -143,8 +167,47 @@ public class GerarCrachas {
             g.drawImage(qrCode, POSICAO_QR.x, POSICAO_QR.y, TAMANHO_QR.width, TAMANHO_QR.height, null);
         }
 
-        // Adiciona textos por Ãºltimo
-        configurarTextosFrente(g, nome, matricula);
+        // Adiciona textos por último (agora inclui apelido)
+        configurarTextosFrente(g, nome, matricula, apelido);
+
+        // Fecha o Graphics
+        g.dispose();
+
+        return template;
+    }
+    
+    /**
+     * Versão sobrecarregada que aceita um FuncionarioModel com todos os dados
+     * Esta versão usa os dados passados diretamente, não busca no banco
+     */
+    private BufferedImage processarFrente(FuncionarioModel funcionario) throws Exception {
+        BufferedImage template = ImageIO.read(new File(IMAGES_PATH + "Cracha_Frente.jpg"));
+        System.out.println("Template dimensions: " + template.getWidth() + "x" + template.getHeight());
+
+        // Carrega foto e QR Code antes
+        BufferedImage foto = carregarFotoFuncionario(funcionario.getRe());
+        BufferedImage qrCode = carregarImagem(funcionario.getRe() + ".png");
+
+        // USA OS DADOS DO OBJETO PASSADO, NÃO DO BANCO
+        String apelido = funcionario.getApelido();
+
+        // Cria o Graphics2D
+        Graphics2D g = template.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+        // Desenha foto
+        if (foto != null) {
+            g.drawImage(foto, POSICAO_FOTO.x, POSICAO_FOTO.y, TAMANHO_FOTO.width, TAMANHO_FOTO.height, null);
+        }
+
+        // Desenha QR Code
+        if (qrCode != null) {
+            g.drawImage(qrCode, POSICAO_QR.x, POSICAO_QR.y, TAMANHO_QR.width, TAMANHO_QR.height, null);
+        }
+
+        // Adiciona textos por último usando os dados corretos do funcionário
+        configurarTextosFrente(g, funcionario.getNome(), funcionario.getRe(), apelido);
 
         // Fecha o Graphics
         g.dispose();
@@ -175,32 +238,83 @@ public class GerarCrachas {
         return template;
     }
 
-    private void configurarTextosFrente(Graphics2D g, String nome, String matricula) {
-        // Ativa suavizaÃ§Ã£o de texto
+    private void configurarTextosFrente(Graphics2D g, String nome, String matricula, String apelido) {
+        // Ativa suavização de texto
         g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-        // Define a cor do texto como preto (ou outra cor visÃ­vel)
+        // Define a cor do texto como preto
         g.setColor(Color.BLACK);
 
         // Log para verificar os valores de entrada
-        System.out.println("Desenhando nome: " + nome + ", matricula: " + matricula);
+        System.out.println("Desenhando nome: " + nome + ", matricula: " + matricula + ", apelido: " + apelido);
 
-        // Nome
-        g.setFont(new Font(FONTE_PRINCIPAL, Font.BOLD, 24));
         String primeiroNome = getPrimeiroNome(nome);
-        System.out.println("Primeiro nome: " + primeiroNome + ", posiÃ§Ã£o: (" + POSICAO_NOME.x + ", " + POSICAO_NOME.y + ")");
-        drawStringFit(g, primeiroNome, POSICAO_NOME.x, POSICAO_NOME.y, 220);
+        String nomeExibir;
 
-        // MatrÃ­cula (com fallback se fonte custom falhar)
+        // Se o apelido existir, formata como "PrimeiroNome (Apelido)"
+        if (apelido != null && !apelido.trim().isEmpty()) {
+            nomeExibir = primeiroNome + " (" + apelido.trim() + ")";
+            System.out.println("Usando nome com apelido: " + nomeExibir);
+        } else {
+            nomeExibir = primeiroNome;
+            System.out.println("Usando apenas primeiro nome: " + nomeExibir);
+        }
+
+        // Nome (com ou sem apelido)
+        g.setFont(new Font(FONTE_PRINCIPAL, Font.BOLD, 24));
+        System.out.println("Nome/Apelido a ser exibido: " + nomeExibir + ", posição: (" + POSICAO_NOME.x + ", " + POSICAO_NOME.y + ")");
+        // O método drawStringFit já ajusta o tamanho da fonte se o texto for muito longo
+        drawStringFit(g, nomeExibir, POSICAO_NOME.x, POSICAO_NOME.y, 220); 
+
+        // Matrícula (código existente)
         try {
             Font fonteCustom = Font.createFont(Font.TRUETYPE_FONT, new File(FONTE_CUSTOM_1)).deriveFont(18f);
             g.setFont(fonteCustom);
         } catch (Exception e) {
-            System.err.println("Fonte customizada nÃ£o encontrada, usando Arial padrÃ£o: " + e.getMessage());
+            System.err.println("Fonte customizada não encontrada, usando Arial padrão: " + e.getMessage());
             g.setFont(new Font("Arial", Font.PLAIN, 18));
         }
-        System.out.println("Desenhando RE: " + matricula + ", posiÃ§Ã£o: (" + POSICAO_MATRICULA.x + ", " + POSICAO_MATRICULA.y + ")");
+        System.out.println("Desenhando RE: " + matricula + ", posição: (" + POSICAO_MATRICULA.x + ", " + POSICAO_MATRICULA.y + ")");
         g.drawString("RE: " + matricula, POSICAO_MATRICULA.x, POSICAO_MATRICULA.y);
+    }
+    
+    /**
+     * Regenera APENAS a frente do crachá de um funcionário.
+     * Ideal para quando apenas o apelido é alterado.
+     * @param func O funcionário com os dados atualizados.
+     */
+    public void regenerarFrenteCracha(FuncionarioModel func) {
+        if (!dadosValidos(func)) {
+            System.out.println("Dados inválidos para regenerar crachá do RE: " + func.getRe());
+            return;
+        }
+
+        try {
+            System.out.println("🎨 Regenerando frente do crachá para: " + func.getNome() + " (RE: " + func.getRe() + ")");
+            System.out.println("📝 Dados utilizados - Nome: " + func.getNome() + ", RE: " + func.getRe() + ", Apelido: " + func.getApelido());
+            
+            // Remove o arquivo antigo primeiro
+            String frentePath = OUTPUT_PATH + "cracha_frente_" + func.getRe() + ".png";
+            File arquivoAntigo = new File(frentePath);
+            if (arquivoAntigo.exists()) {
+                if (arquivoAntigo.delete()) {
+                    System.out.println("🗑️ Arquivo antigo removido: " + frentePath);
+                } else {
+                    System.err.println("⚠️ Não foi possível remover arquivo antigo: " + frentePath);
+                }
+            }
+            
+            // Processa apenas a frente usando os dados corretos do funcionário passado
+            BufferedImage frente = processarFrente(func); // Usa a versão que aceita FuncionarioModel
+            
+            // Salva apenas a frente
+            ImageIO.write(frente, "png", new File(frentePath));
+            
+            System.out.println("✅ Frente do crachá REGENERADA para " + func.getNome() + " (RE: " + func.getRe() + ")");
+        } catch (Exception e) {
+            System.err.println("❌ Erro ao regenerar a frente do crachá para RE: " + func.getRe());
+            e.printStackTrace();
+        }
     }
 
 

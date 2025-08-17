@@ -27,13 +27,13 @@ import io.github.bonigarcia.wdm.WebDriverManager;
 @Service
 public class GerarQRCode {
 	
-	private static final String getResourcePath(String resourcePath) {
-	    return Objects.requireNonNull(
-	    		GerarQRCode.class.getClassLoader().getResource(resourcePath)
-	    ).getPath();
-	}
-
-    private static final String IMAGES_PATH = getResourcePath("images/");
+	private static final String IMAGES_PATH = System.getProperty("user.dir") + 
+	        File.separator + "src" + 
+	        File.separator + "main" + 
+	        File.separator + "resources" + 
+	        File.separator + "images" + 
+	        File.separator;
+	
     private static final String DOWNLOAD_PATH = System.getProperty("user.home") + 
             File.separator + "Downloads" + 
             File.separator + "qrcode" + 
@@ -188,11 +188,7 @@ public class GerarQRCode {
             throw new RuntimeException("Falha ao preencher formulÃ¡rio para RE: " + re, e);
         }
     }
-
     
-
-   
-
     private void submeterFormulario(WebDriver driver) {
         try {
             System.out.println("Submetendo formulÃ¡rio...");

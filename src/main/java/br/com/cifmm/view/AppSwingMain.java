@@ -18,12 +18,19 @@ import br.com.cifmm.service.GerarPDF.ItemImpressao;
 import br.com.cifmm.service.GerarPDF.OpcoesImpressao;
 import br.com.cifmm.util.REParser;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import br.com.cifmm.control.FuncionarioControl;
+import br.com.cifmm.repository.FuncionarioRepository;
+import br.com.cifmm.service.BuscarDados;
 import br.com.cifmm.service.GerarCrachas;
 import br.com.cifmm.service.GerarPDF;
+import br.com.cifmm.view.components.ButtonEditor;
+import br.com.cifmm.view.components.EditDialog;
 import br.com.cifmm.view.components.LoadingScreen;
+import br.com.cifmm.view.components.TabelaCallback;
+import jakarta.annotation.PostConstruct;
 
 import java.awt.*;
 import java.io.File;
@@ -40,12 +47,21 @@ import java.awt.event.ActionEvent;
 import javax.swing.SwingUtilities;
 
 @Component
-public class AppSwingMain extends JFrame {
+public class AppSwingMain extends JFrame implements TabelaCallback {
 
     private static final long serialVersionUID = 1L;
     private JPanel contentPane;
     private JTextField textField;
-    private final FuncionarioControl funcionarioControl;  
+    private final FuncionarioControl funcionarioControl;
+    
+    @Autowired
+    private FuncionarioRepository funcionarioRepository;
+
+    @Autowired 
+    private GerarCrachas gerarCrachas;
+    
+    @Autowired 
+    private BuscarDados buscarDados;
   
     
     private WatchService watchService;
@@ -71,12 +87,20 @@ public class AppSwingMain extends JFrame {
     	setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/images/Logo CIFMM.jpg")));
     	setTitle("CIFMM 2.0");
         this.funcionarioControl = funcionarioControl;
-        initUI();
+        
         
         SwingUtilities.invokeLater(() -> {
             garantirPastaOutput();
             iniciarMonitoramentoArquivos();
             
+        });
+    }
+    
+    @PostConstruct // Ou você pode chamar manualmente após obter o bean do Spring
+    public void initializeUI() {
+        SwingUtilities.invokeLater(() -> {
+            initUI();
+            setVisible(true);
         });
     }
 
@@ -471,101 +495,7 @@ public class AppSwingMain extends JFrame {
     }
     
  // EDITOR - para quando clicar no botÃ£o
-    private static class ButtonEditor extends AbstractCellEditor implements TableCellEditor {
-        private static final long serialVersionUID = 1L;
-        private final JButton button;
-        private final JPanel panel;
-        private String label;
-        private int row;
-        private final JTable table;
-        private final String actionType;
-
-        public ButtonEditor(JTable table, String buttonText, String actionType) {
-            this.table = table;
-            this.actionType = actionType;
-            button = new JButton(buttonText);
-            
-            panel = new JPanel(new GridBagLayout());
-            panel.setOpaque(true);
-            
-            
-            // Configurar aparÃªncia do botÃ£o no editor
-            button.setOpaque(true);
-            button.setHorizontalAlignment(JLabel.CENTER);
-            button.setVerticalAlignment(JLabel.CENTER);
-            
-            panel.add(button, new GridBagConstraints());
-            
-            // Carregar imagem
-            try {
-            	ImageIcon icon = new ImageIcon(getClass().getResource("/images/pencil-square.png"));
-                Image img = icon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
-                button.setIcon(new ImageIcon(img));
-            } catch (Exception e) {
-                System.err.println("Erro ao carregar imagem: " + e.getMessage());
-            }
-            
-            // Configurar tamanho
-            button.setPreferredSize(new Dimension(120, 30));
-
-            
-            button.addActionListener(e -> fireEditingStopped());
-        }
-
-        @Override
-        public java.awt.Component getTableCellEditorComponent(JTable table, Object value,
-                boolean isSelected, int row, int column) {
-            this.label = (value == null) ? "" : value.toString();
-            this.row = row;
-            
-            // Manter configuraÃ§Ãµes visuais
-            button.setText("Editar");
-            
-            return panel;
-        }
-
-        @Override
-        public Object getCellEditorValue() {
-            if (actionType.equals("SELECT")) {
-                table.setRowSelectionInterval(row, row);
-            } else if (actionType.equals("EDIT")) {
-                // Pegar o valor correto da primeira coluna (assumindo que Ã© onde estÃ¡ o RE)
-                
-                showEditDialog();
-            }
-            return label;
-        }
-
-        private void showEditDialog() {
-            JDialog dialog = new JDialog();
-            dialog.setTitle("Editar Informações");
-            dialog.setModal(true);
-            dialog.setSize(400, 300);
-            dialog.getContentPane().setLayout(new BorderLayout());
-
-            JLabel label = new JLabel("Editar Informações");
-            label.setHorizontalAlignment(SwingConstants.CENTER);
-            label.setFont(new Font("Tahoma", Font.PLAIN, 16));
-            dialog.getContentPane().add(label, BorderLayout.CENTER);
-
-            JButton closeButton = new JButton("Fechar");
-            closeButton.addActionListener(e -> dialog.dispose());
-            dialog.getContentPane().add(closeButton, BorderLayout.SOUTH);
-
-            dialog.setLocationRelativeTo(null);
-            dialog.setVisible(true);
-        }
-
-        @Override
-        public boolean stopCellEditing() {
-            return super.stopCellEditing();
-        }
-
-        @Override
-        public boolean isCellEditable(EventObject e) {
-            return true;
-        }
-    }
+   
     
     
     // Method to get all image files from the output folder
@@ -681,9 +611,11 @@ public class AppSwingMain extends JFrame {
         }
     }
     
+    @Override
     public void atualizarTabela() {
+        // Este método já existe no seu App.java, só precisa implementar a interface
         try {
-            System.out.println("🔄 Atualizando tabela...");
+            System.out.println("🔄 Atualizando tabela via callback...");
             List<File> imageFiles = getImageFilesFromFolder(OUTPUT_PATH);
             DefaultTableModel model = (DefaultTableModel) table_2.getModel();
             
@@ -727,10 +659,10 @@ public class AppSwingMain extends JFrame {
             updateMasterCheckBox();
             table_2.revalidate();
             table_2.repaint();
-            System.out.println("✅ Tabela atualizada - " + imageFiles.size() + " arquivos encontrados");
+            System.out.println("✅ Tabela atualizada via callback - " + imageFiles.size() + " arquivos encontrados");
             
         } catch (Exception e) {
-            System.err.println("❌ Erro ao atualizar tabela: " + e.getMessage());
+            System.err.println("❌ Erro ao atualizar tabela via callback: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -927,7 +859,18 @@ public class AppSwingMain extends JFrame {
 	    table_2.getColumnModel().getColumn(0).setCellEditor(new CheckBoxEditor(this));	
 	    table_2.getColumnModel().getColumn(1).setCellRenderer(new ImageRenderer());
 	    table_2.getColumnModel().getColumn(2).setCellRenderer(new ButtonRenderer());
-	    table_2.getColumnModel().getColumn(2).setCellEditor(new ButtonEditor(table_2, "", "EDIT"));
+	    
+	    ButtonEditor buttonEditor = new ButtonEditor(
+	            table_2, 
+	            "Editar", 
+	            "EDIT",
+	            funcionarioRepository,
+	            gerarCrachas,
+	            buscarDados,
+	            this  // <- Passa esta instância como callback
+	        );
+	    
+	    table_2.getColumnModel().getColumn(2).setCellEditor(buttonEditor);	    
 
 	    // Configura a largura das colunas
 	    table_2.getColumnModel().getColumn(0).setPreferredWidth(100);
