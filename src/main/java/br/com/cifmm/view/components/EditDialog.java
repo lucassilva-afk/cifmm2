@@ -13,6 +13,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import javax.swing.SwingUtilities;
+
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
@@ -296,7 +298,7 @@ public class EditDialog extends JDialog {
                 try {
                     get(); // Verifica se ocorreram exceções no doInBackground().
                     
-                    // MARCA COMO SALVO ANTES DE MOSTRAR QUALQUER DIALOG
+                    // MARCA COMO SALVO ANTES DE QUALQUER OUTRA AÇÃO
                     edicaoSalva = true;
                     
                     String mensagem = apelidoFinal != null ? 
@@ -309,28 +311,29 @@ public class EditDialog extends JDialog {
                     // Mostra mensagem de sucesso
                     JOptionPane.showMessageDialog(EditDialog.this, mensagem, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                     
-                    // FECHA IMEDIATAMENTE após mostrar a mensagem
-                    dispose();
+                    // FORÇA o fechamento do diálogo
+                    SwingUtilities.invokeLater(() -> {
+                        setVisible(false);
+                        dispose();
+                    });
                     
                 } catch (Exception e) {
                     System.err.println("❌ Erro ao salvar apelido: " + e.getMessage());
                     e.printStackTrace();
                     
-                    // Em caso de erro, não marca como salvo
                     edicaoSalva = false;
                     
                     JOptionPane.showMessageDialog(EditDialog.this, 
-                        "Erro ao salvar alterações: " + e.getCause().getMessage(), 
+                        "Erro ao salvar alterações: " + e.getMessage(), 
                         "Erro", 
                         JOptionPane.ERROR_MESSAGE);
                         
-                    // Volta para o estado normal (não fecha em caso de erro)
                     mostrarLoading(false);
                 }
             }
         };
         
-        worker.execute();
+        worker.execute();        
     }
 
     /**

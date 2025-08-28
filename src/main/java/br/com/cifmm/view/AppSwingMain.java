@@ -54,6 +54,10 @@ public class AppSwingMain extends JFrame implements TabelaCallback {
     private JTextField textField;
     private final FuncionarioControl funcionarioControl;
     
+    private JProgressBar progressBarTabela;
+    private JLabel lblCarregamentoTabela;
+    private JPanel panelCarregamento;
+    
     @Autowired
     private FuncionarioRepository funcionarioRepository;
 
@@ -78,7 +82,7 @@ public class AppSwingMain extends JFrame implements TabelaCallback {
     private JCheckBox chckbxNewCheckBox;
     private JScrollPane scrollPane;        
     private JButton btnNewButton_2;
-	private JPanel Main; 
+    private JPanel mainPanel;
 
     /**
      * Create the frame.
@@ -795,97 +799,97 @@ public class AppSwingMain extends JFrame implements TabelaCallback {
 	    btnNewButton.setIcon(null);
 	    SideBar.add(btnNewButton);
 
-	    // ===========================================
-	    // MAIN PANEL COM GROUPLAYOUT
-	    // ===========================================
-	    JPanel Main = new JPanel();
-	    contentPane.add(Main, BorderLayout.CENTER);
-	    
-	    // Criação dos componentes do Main
-	    textField = new JTextField();
-	    textField.setColumns(10);
-	    textField.setVisible(false);
+	 // ===========================================
+	 // MAIN PANEL COM GROUPLAYOUT
+	 // ===========================================
+	 mainPanel = new JPanel(); // Usar mainPanel em vez de Main
+	 contentPane.add(mainPanel, BorderLayout.CENTER);
 
-	    JLabel lblNewLabel_1 = new JLabel("Digite o RE:");
-	    lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
-	    lblNewLabel_1.setVisible(false);
+	 // Criação dos componentes do Main
+	 textField = new JTextField();
+	 textField.setColumns(10);
+	 textField.setVisible(false);
 
-	    JButton btnNewButton_1 = new JButton("Buscar");
-	    btnNewButton_1.setVisible(false);
-	    
-	    chckbxNewCheckBox = new JCheckBox("Selecionar Todos");
-	    chckbxNewCheckBox.setFont(new Font("Tahoma", Font.PLAIN, 15));
-	    chckbxNewCheckBox.setVisible(false);
-	    
-	    // ScrollPane da tabela
-	    scrollPane = new JScrollPane();
-	    
-	    btnNewButton_2 = new JButton("Gerar PDF");
-	    btnNewButton_2.setVisible(false);
+	 JLabel lblNewLabel_1 = new JLabel("Digite o RE:");
+	 lblNewLabel_1.setFont(new Font("Tahoma", Font.PLAIN, 20));
+	 lblNewLabel_1.setVisible(false);
 
-	    // ===========================================
-	    // CONFIGURAÇÃO DA TABELA
-	    // ===========================================
-	    List<File> imageFiles = getAllImageFiles();
+	 JButton btnNewButton_1 = new JButton("Buscar");
+	 btnNewButton_1.setVisible(false);
 
-	    // Create data for the table
-	    Object[][] data = new Object[imageFiles.size()][3];
-	    for (int i = 0; i < imageFiles.size(); i++) {
-	        File imageFile = imageFiles.get(i);
-	        data[i][0] = true;  // Checkbox
-	        
-	        // Criar ImageIcon para a imagem
-	        ImageIcon icon = new ImageIcon(imageFile.getAbsolutePath());
-	        icon.setDescription(imageFile.getAbsolutePath());
-	        data[i][1] = icon;
-	        data[i][2] = "Editar"; // Botão
-	    }
+	 chckbxNewCheckBox = new JCheckBox("Selecionar Todos");
+	 chckbxNewCheckBox.setFont(new Font("Tahoma", Font.PLAIN, 15));
+	 chckbxNewCheckBox.setVisible(false);
 
-	    table_2 = new JTable();
-	    table_2.setModel(new DefaultTableModel(data, new String[] {
-	        "Selecionar", "Fotos", "Editar"
-	    }) {
-	        @Override
-	        public Class<?> getColumnClass(int columnIndex) {
-	            if (columnIndex == 0) {
-	                return Boolean.class;
-	            }
-	            return super.getColumnClass(columnIndex);
-	        }
-	    });
-	    
-	    // Configuração do renderizador e editor
-	    table_2.getColumnModel().getColumn(0).setCellRenderer(new CheckBoxRenderer());
-	    table_2.getColumnModel().getColumn(0).setCellEditor(new CheckBoxEditor(this));	
-	    table_2.getColumnModel().getColumn(1).setCellRenderer(new ImageRenderer());
-	    table_2.getColumnModel().getColumn(2).setCellRenderer(new ButtonRenderer());
-	    
-	    ButtonEditor buttonEditor = new ButtonEditor(
-	            table_2, 
-	            "Editar", 
-	            "EDIT",
-	            funcionarioRepository,
-	            gerarCrachas,
-	            buscarDados,
-	            this  // <- Passa esta instância como callback
-	        );
-	    
-	    table_2.getColumnModel().getColumn(2).setCellEditor(buttonEditor);	    
+	 // ScrollPane da tabela
+	 scrollPane = new JScrollPane();
 
-	    // Configura a largura das colunas
-	    table_2.getColumnModel().getColumn(0).setPreferredWidth(100);
-	    table_2.getColumnModel().getColumn(1).setPreferredWidth(400);
-	    table_2.getColumnModel().getColumn(2).setPreferredWidth(100);
-	    table_2.setRowHeight(370);
-	    
-	    scrollPane.setViewportView(table_2);
-	    scrollPane.setVisible(false);
+	 btnNewButton_2 = new JButton("Gerar PDF");
+	 btnNewButton_2.setVisible(false);
 
-	    // ===========================================
-	    // GROUPLAYOUT PARA O PAINEL MAIN
-	    // ===========================================
-	    GroupLayout gl_Main = new GroupLayout(Main);
-	    Main.setLayout(gl_Main);
+	 // ===========================================
+	 // CONFIGURAÇÃO DA TABELA
+	 // ===========================================
+	 List<File> imageFiles = getAllImageFiles();
+
+	 // Create data for the table
+	 Object[][] data = new Object[imageFiles.size()][3];
+	 for (int i = 0; i < imageFiles.size(); i++) {
+	     File imageFile = imageFiles.get(i);
+	     data[i][0] = true;  // Checkbox
+	     
+	     // Criar ImageIcon para a imagem
+	     ImageIcon icon = new ImageIcon(imageFile.getAbsolutePath());
+	     icon.setDescription(imageFile.getAbsolutePath());
+	     data[i][1] = icon;
+	     data[i][2] = "Editar"; // Botão
+	 }
+
+	 table_2 = new JTable();
+	 table_2.setModel(new DefaultTableModel(data, new String[] {
+	     "Selecionar", "Fotos", "Editar"
+	 }) {
+	     @Override
+	     public Class<?> getColumnClass(int columnIndex) {
+	         if (columnIndex == 0) {
+	             return Boolean.class;
+	         }
+	         return super.getColumnClass(columnIndex);
+	     }
+	 });
+
+	 // Configuração do renderizador e editor
+	 table_2.getColumnModel().getColumn(0).setCellRenderer(new CheckBoxRenderer());
+	 table_2.getColumnModel().getColumn(0).setCellEditor(new CheckBoxEditor(this));	
+	 table_2.getColumnModel().getColumn(1).setCellRenderer(new ImageRenderer());
+	 table_2.getColumnModel().getColumn(2).setCellRenderer(new ButtonRenderer());
+
+	 ButtonEditor buttonEditor = new ButtonEditor(
+	         table_2, 
+	         "Editar", 
+	         "EDIT",
+	         funcionarioRepository,
+	         gerarCrachas,
+	         buscarDados,
+	         this  // <- Passa esta instância como callback
+	     );
+
+	 table_2.getColumnModel().getColumn(2).setCellEditor(buttonEditor);	    
+
+	 // Configura a largura das colunas
+	 table_2.getColumnModel().getColumn(0).setPreferredWidth(100);
+	 table_2.getColumnModel().getColumn(1).setPreferredWidth(400);
+	 table_2.getColumnModel().getColumn(2).setPreferredWidth(100);
+	 table_2.setRowHeight(370);
+
+	 scrollPane.setViewportView(table_2);
+	 scrollPane.setVisible(false);
+
+	 // ===========================================
+	 // GROUPLAYOUT PARA O PAINEL MAIN
+	 // ===========================================
+	 GroupLayout gl_Main = new GroupLayout(mainPanel); // Usar mainPanel
+	 mainPanel.setLayout(gl_Main);
 
 	    // Layout Horizontal (esquerda para direita)
 	    gl_Main.setHorizontalGroup(
@@ -1218,4 +1222,126 @@ public class AppSwingMain extends JFrame implements TabelaCallback {
         pararTimer();
         super.finalize();
     }
+
+    public void ocultarCarregamentoTabela() {
+        if (panelCarregamento != null && panelCarregamento.getParent() != null) {
+            mainPanel.remove(panelCarregamento);
+        }
+        
+        // Restaurar o layout original
+        restoreOriginalLayout();
+        
+        // Reexibir componentes da tabela
+        scrollPane.setVisible(true);
+        chckbxNewCheckBox.setVisible(true);
+        btnNewButton_2.setVisible(true);
+        
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
+
+    private void restoreOriginalLayout() {
+        GroupLayout gl_Main = new GroupLayout(mainPanel); // Usar mainPanel
+        mainPanel.setLayout(gl_Main);
+        
+        // Layout original completo
+        gl_Main.setHorizontalGroup(
+            gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addGroup(gl_Main.createSequentialGroup()
+                    .addContainerGap()
+                    .addGroup(gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(textField, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addGroup(gl_Main.createSequentialGroup()
+                            .addComponent(chckbxNewCheckBox)
+                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGroup(gl_Main.createSequentialGroup()
+                            .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 1000, Short.MAX_VALUE)
+                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                            .addComponent(btnNewButton_2)))
+                    .addContainerGap())
+        );
+
+        gl_Main.setVerticalGroup(
+            gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addGroup(gl_Main.createSequentialGroup()
+                    .addContainerGap()
+                    .addComponent(textField, GroupLayout.PREFERRED_SIZE, 41, GroupLayout.PREFERRED_SIZE)
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                    .addComponent(chckbxNewCheckBox)
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                    .addGroup(gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+                        .addComponent(scrollPane, GroupLayout.DEFAULT_SIZE, 500, Short.MAX_VALUE)
+                        .addGroup(GroupLayout.Alignment.TRAILING, gl_Main.createSequentialGroup()
+                            .addGap(0, 0, Short.MAX_VALUE)
+                            .addComponent(btnNewButton_2)))
+                    .addContainerGap())
+        );
+    }
+
+    public void mostrarCarregamentoTabela() {
+        if (panelCarregamento == null) {
+            criarPanelCarregamento();
+        }
+        
+        // Ocultar componentes da tabela
+        scrollPane.setVisible(false);
+        chckbxNewCheckBox.setVisible(false);
+        btnNewButton_2.setVisible(false);
+        
+        // Adicionar painel de carregamento
+        if (panelCarregamento.getParent() != null) {
+            mainPanel.remove(panelCarregamento);
+        }
+        
+        mainPanel.add(panelCarregamento);
+        panelCarregamento.setVisible(true);
+        
+        lblCarregamentoTabela.setText("Atualizando tabela...");
+        progressBarTabela.setIndeterminate(true);
+        
+        // Reconfigurar layout temporariamente para mostrar só o carregamento
+        GroupLayout gl_Main = new GroupLayout(mainPanel);
+        mainPanel.setLayout(gl_Main);
+        
+        gl_Main.setHorizontalGroup(
+            gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addGroup(gl_Main.createSequentialGroup()
+                    .addContainerGap()
+                    .addComponent(panelCarregamento, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addContainerGap())
+        );
+        
+        gl_Main.setVerticalGroup(
+            gl_Main.createParallelGroup(GroupLayout.Alignment.LEADING)
+                .addGroup(gl_Main.createSequentialGroup()
+                    .addContainerGap()
+                    .addComponent(panelCarregamento, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addContainerGap())
+        );
+        
+        mainPanel.revalidate();
+        mainPanel.repaint();
+    }
+
+	private void criarPanelCarregamento() {
+	    panelCarregamento = new JPanel(new BorderLayout(0, 20));
+	    panelCarregamento.setBorder(new EmptyBorder(100, 50, 100, 50));
+	    
+	    // Painel central para centralizar verticalmente
+	    JPanel centerPanel = new JPanel(new BorderLayout(0, 20));
+	    
+	    progressBarTabela = new JProgressBar();
+	    progressBarTabela.setIndeterminate(true);
+	    progressBarTabela.setPreferredSize(new Dimension(400, 30));
+	    progressBarTabela.setStringPainted(true);
+	    progressBarTabela.setString("Processando...");
+	    
+	    lblCarregamentoTabela = new JLabel("Atualizando tabela...", SwingConstants.CENTER);
+	    lblCarregamentoTabela.setFont(new Font("Tahoma", Font.BOLD, 18));
+	    
+	    centerPanel.add(progressBarTabela, BorderLayout.CENTER);
+	    centerPanel.add(lblCarregamentoTabela, BorderLayout.SOUTH);
+	    
+	    panelCarregamento.add(centerPanel, BorderLayout.CENTER);
+	}
 }

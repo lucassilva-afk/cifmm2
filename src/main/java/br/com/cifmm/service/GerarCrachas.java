@@ -223,9 +223,9 @@ public class GerarCrachas {
         // Adiciona textos
         int linha = POSICAO_DADOS_VERSO.y;
         g.drawString(nome, POSICAO_DADOS_VERSO.x, linha);
-        linha += 50;
+        linha += 55;
         g.drawString(cargo, POSICAO_DADOS_VERSO.x, linha);
-        linha += 50;
+        linha += 55;
         g.drawString(secretaria, POSICAO_DADOS_VERSO.x, linha);
 
         g.dispose();
@@ -243,24 +243,25 @@ public class GerarCrachas {
         System.out.println("Desenhando nome: " + nome + ", matricula: " + matricula + ", apelido: " + apelido);
 
         String primeiroNome = getPrimeiroNome(nome);
-        String nomeExibir;
+        
+        // Configuração da fonte principal para o nome
+        g.setFont(new Font(FONTE_PRINCIPAL, Font.BOLD, 24));
+        
+        // 1. Desenha o primeiro nome
+        System.out.println("Desenhando primeiro nome: " + primeiroNome + ", posição: (" + POSICAO_NOME.x + ", " + POSICAO_NOME.y + ")");
+        drawStringFit(g, primeiroNome, POSICAO_NOME.x, POSICAO_NOME.y, 220);
 
-        // Se o apelido existir, formata como "PrimeiroNome (Apelido)"
+        // 2. Desenha o apelido (se existir) - uma linha abaixo do nome
         if (apelido != null && !apelido.trim().isEmpty()) {
-            nomeExibir = primeiroNome + " (" + apelido.trim() + ")";
-            System.out.println("Usando nome com apelido: " + nomeExibir);
-        } else {
-            nomeExibir = primeiroNome;
-            System.out.println("Usando apenas primeiro nome: " + nomeExibir);
+            // Calcula a posição Y para o apelido (uma linha abaixo do nome)
+            int posicaoApelidoY = POSICAO_NOME.y + 30; // Ajuste a distância conforme necessário
+            String apelidoFormatado = "\"" + apelido.trim() + "\"";
+            
+            System.out.println("Desenhando apelido: " + apelidoFormatado + ", posição: (" + POSICAO_NOME.x + ", " + posicaoApelidoY + ")");
+            drawStringFit(g, apelidoFormatado, POSICAO_NOME.x, posicaoApelidoY, 220);
         }
 
-        // Nome (com ou sem apelido)
-        g.setFont(new Font(FONTE_PRINCIPAL, Font.BOLD, 24));
-        System.out.println("Nome/Apelido a ser exibido: " + nomeExibir + ", posição: (" + POSICAO_NOME.x + ", " + POSICAO_NOME.y + ")");
-        // O método drawStringFit já ajusta o tamanho da fonte se o texto for muito longo
-        drawStringFit(g, nomeExibir, POSICAO_NOME.x, POSICAO_NOME.y, 220); 
-
-        // Matrícula (código existente)
+        // 3. Matrícula/RE - configuração da fonte customizada
         try {
             Font fonteCustom = Font.createFont(Font.TRUETYPE_FONT, new File(FONTE_CUSTOM_1)).deriveFont(18f);
             g.setFont(fonteCustom);
@@ -268,8 +269,11 @@ public class GerarCrachas {
             System.err.println("Fonte customizada não encontrada, usando Arial padrão: " + e.getMessage());
             g.setFont(new Font("Arial", Font.PLAIN, 18));
         }
-        System.out.println("Desenhando RE: " + matricula + ", posição: (" + POSICAO_MATRICULA.x + ", " + POSICAO_MATRICULA.y + ")");
-        g.drawString("RE: " + matricula, POSICAO_MATRICULA.x, POSICAO_MATRICULA.y);
+        
+        // Formato atualizado para "Matricula/RE"
+        String matriculaFormatada = matricula;
+        System.out.println("Desenhando matrícula: " + matriculaFormatada + ", posição: (" + POSICAO_MATRICULA.x + ", " + POSICAO_MATRICULA.y + ")");
+        g.drawString(matriculaFormatada, POSICAO_MATRICULA.x, POSICAO_MATRICULA.y + 30);
     }
     
     /**
