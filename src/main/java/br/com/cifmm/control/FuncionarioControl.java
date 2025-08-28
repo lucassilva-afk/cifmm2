@@ -26,18 +26,21 @@ public class FuncionarioControl {
         this.gerarCrachas = gerarCrachas;
     }
 
-    // Método original mantido
+    // Método original AJUSTADO (não salva mais, só gera crachá)
     public void salvarFuncionario(String re) {
         try {
+            // O método buscarPorRe já salva automaticamente no cache
             var funcionario = buscarDados.buscarPorRe(re);
-            funcionarioService.salvar(funcionario);
-            System.out.println("[OK] Funcionário salvo: " + funcionario.getNome());
+            
+            // Não precisamos mais salvar aqui, pois já é salvo no cache
+            // funcionarioService.salvar(funcionario);
+            System.out.println("[OK] Funcionário processado: " + funcionario.getNome());
             
             gerarCrachas.gerarCracha(funcionario);
             System.out.println("[OK] Crachá gerado para o funcionário: " + funcionario.getNome());
             
         } catch (Exception e) {
-            System.err.println("[ERRO] Falha ao salvar funcionário ou gerar crachá: " + e.getMessage());
+            System.err.println("[ERRO] Falha ao processar funcionário ou gerar crachá: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -71,53 +74,41 @@ public class FuncionarioControl {
     }
     
     /**
-     * Processa um único RE (reutiliza método atual)
-     */
-    /**
      * Processa um único RE com progresso mais detalhado
      */
     private RelatorioProcessamento processarUnico(String re, ProgressCallback callback) {
         try {
-            // 🔄 Etapa 1: Iniciando
+            // 📄 Etapa 1: Iniciando
             if (callback != null) {
                 callback.onProgress(0, 100, "Iniciando processamento do RE: " + re);
                 Thread.sleep(200); // Pequena pausa para visualizar
             }
             
-            // 🔄 Etapa 2: Buscando dados
+            // 📄 Etapa 2: Buscando dados (com cache)
             if (callback != null) {
-                callback.onProgress(20, 100, "Buscando dados do funcionário: " + re);
+                callback.onProgress(20, 100, "Verificando cache e buscando dados: " + re);
                 Thread.sleep(300);
             }
             
-            // Buscar dados do funcionário
+            // Buscar dados do funcionário (já salva no cache automaticamente)
             var funcionario = buscarDados.buscarPorRe(re);
             
-            // 🔄 Etapa 3: Dados encontrados
+            // 📄 Etapa 3: Dados encontrados
             if (callback != null) {
-                callback.onProgress(50, 100, "Dados encontrados: " + funcionario.getNome());
+                callback.onProgress(60, 100, "Dados processados: " + funcionario.getNome());
                 Thread.sleep(200);
             }
             
-            // 🔄 Etapa 4: Salvando no banco
+            // 📄 Etapa 4: Gerando crachá
             if (callback != null) {
-                callback.onProgress(70, 100, "Salvando funcionário no banco de dados...");
-                Thread.sleep(300);
-            }
-            
-            funcionarioService.salvar(funcionario);
-            System.out.println("[OK] Funcionário salvo: " + funcionario.getNome());
-            
-            // 🔄 Etapa 5: Gerando crachá
-            if (callback != null) {
-                callback.onProgress(85, 100, "Gerando crachá para " + funcionario.getNome());
+                callback.onProgress(80, 100, "Gerando crachá para " + funcionario.getNome());
                 Thread.sleep(400);
             }
             
             gerarCrachas.gerarCracha(funcionario);
             System.out.println("[OK] Crachá gerado para o funcionário: " + funcionario.getNome());
             
-            // 🔄 Etapa 6: Finalizando
+            // 📄 Etapa 5: Finalizando
             if (callback != null) {
                 callback.onProgress(100, 100, "Processamento concluído!");
                 Thread.sleep(200);
@@ -144,7 +135,7 @@ public class FuncionarioControl {
     private RelatorioProcessamento processarMultiplos(List<String> res, ProgressCallback callback) {
         System.out.println("=== PROCESSAMENTO EM LOTE ===");
         
-        // 1. Buscar dados de todos os REs
+        // 1. Buscar dados de todos os REs (já salva no cache automaticamente)
         Map<String, BuscarDados.BuscaResult> resultadosBusca = buscarDados.buscarMultiplos(res, 
             (atual, total, mensagem) -> {
                 if (callback != null) {
@@ -152,7 +143,7 @@ public class FuncionarioControl {
                 }
             });
         
-        // 2. Salvar e gerar crachás para os que deram certo
+        // 2. Gerar crachás para os que deram certo
         int sucessos = 0;
         int erros = 0;
         int currentIndex = res.size(); // Continua a partir de onde parou
@@ -166,22 +157,21 @@ public class FuncionarioControl {
             
             if (resultado.getSucesso()) {
                 try {
-                    // Salvar no banco
-                    funcionarioService.salvar(resultado.getFuncionario());
-                    System.out.println("💾 Funcionário salvo: " + resultado.getFuncionario().getNome());
+                    // Não precisamos salvar no banco (já foi salvo no cache)
+                    // funcionarioService.salvar(resultado.getFuncionario());
                     
-                    // Gerar crachá
+                    // Apenas gerar crachá
                     gerarCrachas.gerarCracha(resultado.getFuncionario());
                     System.out.println("🏷️ Crachá gerado para: " + resultado.getFuncionario().getNome());
                     
                     sucessos++;
                     
                 } catch (Exception e) {
-                    System.err.println("❌ Erro ao processar RE " + re + ": " + e.getMessage());
+                    System.err.println("❌ Erro ao gerar crachá para RE " + re + ": " + e.getMessage());
                     erros++;
                 }
             } else {
-                System.err.println("⏭️ Pulando RE " + re + " devido a erro na busca");
+                System.err.println("⭐️ Pulando RE " + re + " devido a erro na busca");
                 erros++;
             }
             
