@@ -67,9 +67,7 @@ public class ButtonEditor extends DefaultCellEditor {
 
     @Override
     public Object getCellEditorValue() {
-        if (isPushed) {
-            handleButtonClick();
-        }
+        // Remove a lógica de handleButtonClick daqui
         isPushed = false;
         return label;
     }
@@ -92,7 +90,15 @@ public class ButtonEditor extends DefaultCellEditor {
             
             if (reDoFuncionario != null) {
                 System.out.println("🔍 Editando funcionário com RE: " + reDoFuncionario + " (linha " + currentRow + ")");
-                abrirEditDialog(reDoFuncionario, currentRow);
+                
+                // Para a edição da célula ANTES de abrir o diálogo
+                fireEditingStopped();
+                
+                // Executa a abertura do diálogo em uma nova thread da EDT
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    abrirEditDialog(reDoFuncionario, currentRow);
+                });
+                
             } else {
                 System.err.println("❌ Não foi possível extrair o RE da linha " + currentRow);
             }
@@ -131,20 +137,47 @@ public class ButtonEditor extends DefaultCellEditor {
 
     private void abrirEditDialog(String re, int linha) {
         try {
-            // Cria o EditDialog passando as dependências
             EditDialog editDialog = new EditDialog(funcionarioRepository);
             editDialog.carregarFuncionario(re);
-            editDialog.setLocationRelativeTo(null);
+            editDialog.setLocationRelativeTo(table);
             editDialog.setModal(true);
+            
+            // Mostra o diálogo e aguarda o fechamento
             editDialog.setVisible(true);
             
-            // IMPORTANTE: Só verifica se foi salvo DEPOIS que o dialog for fechado
+            // Só executa após o diálogo ser fechado
             if (editDialog.isEdicaoSalva()) {
                 System.out.println("✅ Apelido editado com sucesso para RE: " + re);
-                regenerarCrachaComDadosAtualizados(re);
-                // Chama o método de atualizar tabela do App.java em vez de atualizar só uma linha
-                chamarAtualizarTabela();
-                System.out.println("🔄 Tabela totalmente atualizada");
+                
+                // Ocultar a tabela primeiro
+                ocultarTabelaEMostrarCarregamento();
+                
+                // Executar regeneração em background
+                javax.swing.SwingWorker<Void, Void> worker = new javax.swing.SwingWorker<Void, Void>() {
+                    @Override
+                    protected Void doInBackground() throws Exception {
+                        regenerarCrachaComDadosAtualizados(re);
+                        return null;
+                    }
+                    
+                    @Override
+                    protected void done() {
+                        try {
+                            get(); // Verifica se houve exceções
+                            // Reexibir tabela e atualizar
+                            reexibirTabelaEAtualizar();
+                            System.out.println("🔄 Tabela totalmente atualizada");
+                        } catch (Exception e) {
+                            System.err.println("❌ Erro na regeneração: " + e.getMessage());
+                            e.printStackTrace();
+                            reexibirTabelaEAtualizar(); // Reexibe mesmo com erro
+                        }
+                    }
+
+					
+                };
+                
+                worker.execute();
             }
             
         } catch (Exception e) {
@@ -153,7 +186,42 @@ public class ButtonEditor extends DefaultCellEditor {
         }
     }
 
-    private void regenerarCrachaComDadosAtualizados(String re) {
+    private void reexibirTabelaEAtualizar() {
+    if (tabelaCallback != null) {
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            try {
+                // Atualiza tabela e reexibe
+                tabelaCallback.atualizarTabela();
+                
+                // Chama método específico para ocultar carregamento
+                if (tabelaCallback instanceof br.com.cifmm.view.AppSwingMain) {
+                    ((br.com.cifmm.view.AppSwingMain) tabelaCallback).ocultarCarregamentoTabela();
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Erro ao atualizar tabela: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+}
+
+    private void ocultarTabelaEMostrarCarregamento() {
+        if (tabelaCallback != null) {
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                try {
+                    if (tabelaCallback instanceof br.com.cifmm.view.AppSwingMain) {
+                        br.com.cifmm.view.AppSwingMain app = (br.com.cifmm.view.AppSwingMain) tabelaCallback;
+                        app.mostrarCarregamentoTabela();
+                    }
+                } catch (Exception e) {
+                    System.err.println("Erro ao mostrar carregamento: " + e.getMessage());
+                    // Não interrompe o fluxo se der erro no carregamento
+                }
+            });
+        }
+    }
+
+	private void regenerarCrachaComDadosAtualizados(String re) {
         try {
             System.out.println("🎨 Regenerando crachá com dados atualizados do site para RE: " + re);
             

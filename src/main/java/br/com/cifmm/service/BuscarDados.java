@@ -1,25 +1,105 @@
 package br.com.cifmm.service;
 
 import br.com.cifmm.model.FuncionarioModel;
+import br.com.cifmm.repository.FuncionarioRepository;
 import br.com.cifmm.util.REParser;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.swing.JOptionPane;
 
 @Component
 public class BuscarDados {
 
-    // Método original mantido
+    @Autowired
+    private FuncionarioRepository funcionarioRepository;
+
+    // Configurações de cache (em horas)
+    private static final long CACHE_EXPIRY_HOURS = 24; // 24 horas
+
+    /**
+     * Método principal com cache implementado
+     * Primeiro verifica no banco, depois na web se necessário
+     */
     public FuncionarioModel buscarPorRe(String reDigitado) throws IOException {
-        // ... código atual mantido igual ...
+        System.out.println("🔍 Buscando funcionário com RE: " + reDigitado);
+        
+        // 1. VERIFICAR CACHE (BANCO DE DADOS)
+        FuncionarioModel funcionarioCache = verificarCache(reDigitado);
+        if (funcionarioCache != null) {
+            System.out.println("✅ Funcionário encontrado no cache: " + funcionarioCache.getNome());
+            return funcionarioCache;
+        }
+        
+        // 2. NÃO ENCONTRADO NO CACHE - BUSCAR NA WEB
+        System.out.println("🌐 Funcionário não encontrado no cache. Buscando na web...");
+        FuncionarioModel funcionario = buscarNaWeb(reDigitado);
+        
+        // 3. SALVAR NO CACHE PARA PRÓXIMAS CONSULTAS
+        try {
+            funcionario.setDataUltimaAtualizacao(LocalDateTime.now());
+            funcionarioRepository.save(funcionario);
+            System.out.println("💾 Funcionário salvo no cache: " + funcionario.getNome());
+        } catch (Exception e) {
+            System.err.println("⚠️ Erro ao salvar no cache, mas dados foram obtidos: " + e.getMessage());
+            // Não falha a operação, apenas não salva no cache
+        }
+        
+        return funcionario;
+    }
+    
+    /**
+     * Verifica se o funcionário existe no cache e se ainda é válido
+     */
+    private FuncionarioModel verificarCache(String re) {
+        try {
+            Optional<FuncionarioModel> funcionarioOpt = funcionarioRepository.findFirstByRe(re);
+            
+            if (funcionarioOpt.isPresent()) {
+                FuncionarioModel funcionario = funcionarioOpt.get();
+                
+                // Verificar se o cache ainda é válido
+                if (funcionario.getDataUltimaAtualizacao() != null) {
+                    LocalDateTime agora = LocalDateTime.now();
+                    LocalDateTime ultimaAtualizacao = funcionario.getDataUltimaAtualizacao();
+                    
+                    long horasDesdeUltimaAtualizacao = java.time.Duration.between(ultimaAtualizacao, agora).toHours();
+                    
+                    if (horasDesdeUltimaAtualizacao < CACHE_EXPIRY_HOURS) {
+                        System.out.println("📋 Cache válido (atualizado há " + horasDesdeUltimaAtualizacao + " horas)");
+                        return funcionario;
+                    } else {
+                        System.out.println("⏰ Cache expirado (atualizado há " + horasDesdeUltimaAtualizacao + " horas). Removendo...");
+                        // Remove o registro expirado
+                        funcionarioRepository.delete(funcionario);
+                    }
+                } else {
+                    // Se não tem data de atualização, considera válido (dados antigos)
+                    System.out.println("📋 Cache encontrado (sem data de atualização - dados legados)");
+                    return funcionario;
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Erro ao verificar cache: " + e.getMessage());
+        }
+        
+        return null;
+    }
+
+    /**
+     * Busca os dados na web (código original)
+     */
+    private FuncionarioModel buscarNaWeb(String reDigitado) throws IOException {
         // Monta a URL
         String url = "https://validar.mogimirim.sp.gov.br/Funcionarios?RE=" + reDigitado;
         System.out.println("Acessando URL: " + url);
@@ -93,7 +173,6 @@ public class BuscarDados {
 
         return funcionario;
     }
-    
 
     /**
      * NOVO MÉTODO: Busca múltiplos funcionários com controle de erro individual
@@ -119,15 +198,15 @@ public class BuscarDados {
                 
                 System.out.println("Processando " + (i + 1) + "/" + total + ": RE " + re);
                 
-                // Usa o método original
+                // Usa o método principal com cache
                 FuncionarioModel funcionario = buscarPorRe(re);
                 resultados.put(re, new BuscaResult(funcionario, null));
                 
                 System.out.println("✅ Sucesso para RE " + re + ": " + funcionario.getNome());
                 
-                // Pausa entre requests para não sobrecarregar o servidor
+                // Pausa entre requests para não sobrecarregar o servidor (apenas se buscar na web)
                 if (i < res.size() - 1) { // Não pausar no último
-                    Thread.sleep(800); // 800ms entre requests
+                    Thread.sleep(200); // Pausa reduzida já que muitos dados vêm do cache
                 }
                 
             } catch (Exception e) {
@@ -148,6 +227,44 @@ public class BuscarDados {
         System.out.println("Taxa de sucesso: " + String.format("%.1f%%", (double) sucessos / total * 100));
         
         return resultados;
+    }
+    
+    /**
+     * Método utilitário para limpar cache expirado manualmente
+     */
+    public void limparCacheExpirado() {
+        try {
+            LocalDateTime limite = LocalDateTime.now().minusHours(CACHE_EXPIRY_HOURS);
+            List<FuncionarioModel> funcionarios = funcionarioRepository.findAll();
+            
+            int removidos = 0;
+            for (FuncionarioModel funcionario : funcionarios) {
+                if (funcionario.getDataUltimaAtualizacao() != null && 
+                    funcionario.getDataUltimaAtualizacao().isBefore(limite)) {
+                    funcionarioRepository.delete(funcionario);
+                    removidos++;
+                }
+            }
+            
+            System.out.println("🗑️ Cache limpo: " + removidos + " registros expirados removidos");
+        } catch (Exception e) {
+            System.err.println("⚠️ Erro ao limpar cache: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Método utilitário para invalidar cache de um RE específico
+     */
+    public void invalidarCache(String re) {
+        try {
+            Optional<FuncionarioModel> funcionarioOpt = funcionarioRepository.findFirstByRe(re);
+            if (funcionarioOpt.isPresent()) {
+                funcionarioRepository.delete(funcionarioOpt.get());
+                System.out.println("🗑️ Cache invalidado para RE: " + re);
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ Erro ao invalidar cache para RE " + re + ": " + e.getMessage());
+        }
     }
     
     /**

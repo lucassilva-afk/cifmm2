@@ -92,19 +92,29 @@ public class GerarPDF {
      * Adiciona uma página individual ao documento
      */
     private void adicionarPagina(PDDocument document, String caminhoImagem, String descricao) throws IOException {
-        PDPage page = new PDPage(PDRectangle.A4);
+        // Criar página A4 em orientação paisagem (horizontal/deitada)
+        PDPage page = new PDPage(new PDRectangle(PDRectangle.A4.getHeight(), PDRectangle.A4.getWidth()));
         document.addPage(page);
         
         PDImageXObject image = PDImageXObject.createFromFile(caminhoImagem, document);
         
         try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
-            // Calcular escala para caber na página A4
-            float pageWidth = PDRectangle.A4.getWidth();
-            float pageHeight = PDRectangle.A4.getHeight();
+            // Dimensões da página A4 em paisagem
+            float pageWidth = PDRectangle.A4.getHeight();  // 842 pontos
+            float pageHeight = PDRectangle.A4.getWidth();  // 595 pontos
             
+            // Calcular escala para preencher melhor a página
             float scaleX = pageWidth / image.getWidth();
             float scaleY = pageHeight / image.getHeight();
-            float scale = Math.min(scaleX, scaleY) * 0.9f; // 90% da página para margem
+            
+            // Usar escala de 140% (1.4f) como você mencionou, mas limitando para não exceder a página
+            float scale = Math.min(scaleX, scaleY) * 1.4f;
+            
+            // Se a escala ficar muito grande, limitar para não ultrapassar a página
+            float maxScale = Math.min(scaleX, scaleY) * 0.95f; // 95% da página como limite máximo
+            if (scale > maxScale) {
+                scale = maxScale;
+            }
             
             float scaledWidth = image.getWidth() * scale;
             float scaledHeight = image.getHeight() * scale;
@@ -115,7 +125,8 @@ public class GerarPDF {
             
             contentStream.drawImage(image, x, y, scaledWidth, scaledHeight);
             
-            System.out.println("Página adicionada: " + descricao);
+            System.out.println("Página adicionada (paisagem): " + descricao + 
+                              " - Escala aplicada: " + String.format("%.1f%%", scale * 100));
         }
     }
     
@@ -123,37 +134,37 @@ public class GerarPDF {
      * Salva o documento PDF
      */
     private void salvarDocumento(PDDocument document) throws IOException {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Salvar PDF dos Crachás");
-        fileChooser.setSelectedFile(new File("crachas_selecionados.pdf"));
-        fileChooser.setFileFilter(new FileNameExtensionFilter("Arquivos PDF (*.pdf)", "pdf"));
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Salvar PDF dos Crachás");
+    fileChooser.setSelectedFile(new File("crachas_selecionados.pdf"));
+    fileChooser.setFileFilter(new FileNameExtensionFilter("Arquivos PDF (*.pdf)", "pdf"));
+    
+    int result = fileChooser.showSaveDialog(null);
+    
+    if (result == JFileChooser.APPROVE_OPTION) {
+        File arquivoDestino = fileChooser.getSelectedFile();
         
-        int result = fileChooser.showSaveDialog(null);
-        
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File arquivoDestino = fileChooser.getSelectedFile();
-            
-            // Garantir extensão .pdf
-            if (!arquivoDestino.getName().toLowerCase().endsWith(".pdf")) {
-                arquivoDestino = new File(arquivoDestino.getAbsolutePath() + ".pdf");
-            }
-            
-            document.save(arquivoDestino);
-            document.close();
-            
-            JOptionPane.showMessageDialog(null, 
-                "PDF gerado com sucesso!\n" + 
-                "Páginas: " + document.getNumberOfPages() + "\n" +
-                "Local: " + arquivoDestino.getAbsolutePath(), 
-                "Sucesso", 
-                JOptionPane.INFORMATION_MESSAGE);
-                
-            System.out.println("PDF salvo em: " + arquivoDestino.getAbsolutePath());
-        } else {
-            document.close();
-            System.out.println("Operação cancelada pelo usuário");
+        // Garantir extensão .pdf
+        if (!arquivoDestino.getName().toLowerCase().endsWith(".pdf")) {
+            arquivoDestino = new File(arquivoDestino.getAbsolutePath() + ".pdf");
         }
+        
+        document.save(arquivoDestino);
+        document.close();
+        
+        JOptionPane.showMessageDialog(null, 
+            "PDF gerado com sucesso!\n" + 
+            "Páginas: " + document.getNumberOfPages() + " (orientação paisagem)\n" +
+            "Local: " + arquivoDestino.getAbsolutePath(), 
+            "Sucesso", 
+            JOptionPane.INFORMATION_MESSAGE);
+            
+        System.out.println("PDF salvo em orientação paisagem: " + arquivoDestino.getAbsolutePath());
+    } else {
+        document.close();
+        System.out.println("Operação cancelada pelo usuário");
     }
+}
     
     /**
      * Método legado - mantido para compatibilidade

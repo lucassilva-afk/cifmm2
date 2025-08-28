@@ -1,5 +1,6 @@
 package br.com.cifmm.model;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 import jakarta.persistence.Entity;
@@ -16,7 +17,7 @@ public class FuncionarioModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String re;          // Novo campo para armazenar o RE
+    private String re;          // Campo para armazenar o RE
     private String nome;
     private String cargo;
     private String secretaria;
@@ -24,6 +25,9 @@ public class FuncionarioModel {
     private String foto;        // Pode ser null
     private String qrcode;      // Pode ser null
     private String apelido;     // Pode ser null
+
+    // NOVO CAMPO PARA CONTROLE DE CACHE
+    private LocalDateTime dataUltimaAtualizacao;
 
     // Getters e setters
     public Long getId() {
@@ -90,6 +94,15 @@ public class FuncionarioModel {
         this.apelido = apelido;
     }
 
+    // NOVO GETTER E SETTER PARA CONTROLE DE CACHE
+    public LocalDateTime getDataUltimaAtualizacao() {
+        return dataUltimaAtualizacao;
+    }
+
+    public void setDataUltimaAtualizacao(LocalDateTime dataUltimaAtualizacao) {
+        this.dataUltimaAtualizacao = dataUltimaAtualizacao;
+    }
+
     /**
      * Retorna o caminho dinâmico para a foto do crachá da frente.
      */
@@ -102,7 +115,9 @@ public class FuncionarioModel {
 
     @Override
     public String toString() {
-        return "FuncionarioModel [re=" + re + ", nome=" + nome + ", cargo=" + cargo + ", secretaria=" + secretaria + ", apelido=" + apelido + "]";
+        return "FuncionarioModel [re=" + re + ", nome=" + nome + ", cargo=" + cargo + 
+               ", secretaria=" + secretaria + ", apelido=" + apelido + 
+               ", dataUltimaAtualizacao=" + dataUltimaAtualizacao + "]";
     }
     
     @Override
