@@ -25,6 +25,8 @@ public class FuncionarioModel {
     private String foto;        // Pode ser null
     private String qrcode;      // Pode ser null
     private String apelido;     // Pode ser null
+    
+    private String nomeCracha;
 
     // NOVO CAMPO PARA CONTROLE DE CACHE
     private LocalDateTime dataUltimaAtualizacao;
@@ -92,6 +94,14 @@ public class FuncionarioModel {
 
     public void setApelido(String apelido) {
         this.apelido = apelido;
+    }
+    
+    public String getNomeCracha() {
+        return nomeCracha;
+    }
+
+    public void setNomeCracha(String nomeCracha) {
+        this.nomeCracha = nomeCracha;
     }
 
     // NOVO GETTER E SETTER PARA CONTROLE DE CACHE

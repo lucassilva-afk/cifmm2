@@ -37,6 +37,7 @@ public class EditDialog extends JDialog {
     private JTextField txtCargo;
     private JTextField txtSecretaria;
     private JTextField txtApelido;
+    private JTextField txtNomeCracha;
     
     private JPanel southPanel;
     private CardLayout cardLayout;
@@ -94,16 +95,17 @@ public class EditDialog extends JDialog {
     private void setupMainPanel() {
         GridBagLayout gbl_contentPanel = new GridBagLayout();
         gbl_contentPanel.columnWidths = new int[]{0, 0};
-        gbl_contentPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0};
+        gbl_contentPanel.rowHeights = new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         gbl_contentPanel.columnWeights = new double[]{1.0, Double.MIN_VALUE};
-        gbl_contentPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+        gbl_contentPanel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
         contentPanel.setLayout(gbl_contentPanel);
 
-        // Campos de texto (Nome, Cargo, Secretaria, Apelido)
-        addFormField("Nome:", 0, false);
-        addFormField("Cargo:", 2, false);
-        addFormField("Secretaria:", 4, false);
-        addFormField("Apelido (Editável):", 6, true);
+        // Campos de texto (Nome, Nome do Crachá, Cargo, Secretaria, Apelido)
+        addFormField("Nome Completo:", 0, false);
+        addFormField("Nome no Crachá (Editável):", 2, true);
+        addFormField("Cargo:", 4, false);
+        addFormField("Secretaria:", 6, false);
+        addFormField("Apelido (Editável):", 8, true);
     }
 
     /**
@@ -124,7 +126,7 @@ public class EditDialog extends JDialog {
         textField.setEditable(isEditable);
         GridBagConstraints gbc_textField = new GridBagConstraints();
         gbc_textField.ipady = 15;
-        gbc_textField.insets = new Insets(0, 0, 15, 0); // Espaçamento maior
+        gbc_textField.insets = new Insets(0, 0, 15, 0);
         gbc_textField.fill = GridBagConstraints.HORIZONTAL;
         gbc_textField.gridx = 0;
         gbc_textField.gridy = gridy + 1;
@@ -132,7 +134,8 @@ public class EditDialog extends JDialog {
         textField.setColumns(10);
 
         // Associa o campo de texto à variável de instância correta
-        if (labelText.startsWith("Nome")) txtNome = textField;
+        if (labelText.startsWith("Nome Completo")) txtNome = textField;
+        else if (labelText.startsWith("Nome no Crachá")) txtNomeCracha = textField;
         else if (labelText.startsWith("Cargo")) txtCargo = textField;
         else if (labelText.startsWith("Secretaria")) txtSecretaria = textField;
         else if (labelText.startsWith("Apelido")) txtApelido = textField;
@@ -238,7 +241,20 @@ public class EditDialog extends JDialog {
             txtCargo.setText(Objects.toString(funcionarioAtual.getCargo(), ""));
             txtSecretaria.setText(Objects.toString(funcionarioAtual.getSecretaria(), ""));
             txtApelido.setText(Objects.toString(funcionarioAtual.getApelido(), ""));
-            System.out.println("✅ Funcionário carregado: " + funcionarioAtual.getNome() + " (RE: " + funcionarioAtual.getRe() + ")");
+            
+            // Para o nome do crachá, usa o valor salvo ou cria um padrão baseado no primeiro nome
+            String nomeCrachaAtual = funcionarioAtual.getNomeCracha();
+            if (nomeCrachaAtual == null || nomeCrachaAtual.trim().isEmpty()) {
+                // Se não tem nome do crachá definido, usa o primeiro nome como padrão
+                String nomeCompleto = funcionarioAtual.getNome();
+                if (nomeCompleto != null && !nomeCompleto.trim().isEmpty()) {
+                    String[] partes = nomeCompleto.trim().split("\\s+");
+                    nomeCrachaAtual = partes[0]; // Usa apenas o primeiro nome como padrão inicial
+                }
+            }
+            txtNomeCracha.setText(Objects.toString(nomeCrachaAtual, ""));
+            
+            System.out.println("Funcionário carregado: " + funcionarioAtual.getNome() + " (RE: " + funcionarioAtual.getRe() + ")");
         }
     }
 
@@ -255,28 +271,36 @@ public class EditDialog extends JDialog {
         }
 
         String novoApelido = txtApelido.getText().trim();
-        // Converte string vazia para null para consistência com o banco de dados.
+        String novoNomeCracha = txtNomeCracha.getText().trim();
+        
+        // Converte strings vazias para null para consistência com o banco de dados
         final String apelidoFinal = novoApelido.isEmpty() ? null : novoApelido;
+        final String nomeCrachaFinal = novoNomeCracha.isEmpty() ? null : novoNomeCracha;
         
         String apelidoAtual = funcionarioAtual.getApelido();
+        String nomeCrachaAtual = funcionarioAtual.getNomeCracha();
 
-        // Se não houve mudança, informa o usuário e fecha o diálogo.
-        if (Objects.equals(apelidoAtual, apelidoFinal)) {
+        // Verifica se houve mudanças
+        boolean apelidoMudou = !Objects.equals(apelidoAtual, apelidoFinal);
+        boolean nomeCrachaMudou = !Objects.equals(nomeCrachaAtual, nomeCrachaFinal);
+
+        if (!apelidoMudou && !nomeCrachaMudou) {
             JOptionPane.showMessageDialog(this, "Nenhuma alteração foi feita.", "Informação", JOptionPane.INFORMATION_MESSAGE);
             dispose();
             return;
         }
 
-        // Mostra a tela de carregamento e inicia o SwingWorker.
+        // Mostra a tela de carregamento e inicia o SwingWorker
         mostrarLoading(true);
 
         SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
             @Override
             protected Void doInBackground() throws Exception {
                 publish("Salvando no banco de dados...");
-                Thread.sleep(500); // Simula latência para feedback visual.
+                Thread.sleep(500);
                 
-                funcionarioAtual.setApelido(apelidoFinal); // Usa a variável final.
+                funcionarioAtual.setApelido(apelidoFinal);
+                funcionarioAtual.setNomeCracha(nomeCrachaFinal);
                 funcionarioRepository.save(funcionarioAtual);
                 
                 publish("Alterações salvas com sucesso!");
@@ -287,7 +311,6 @@ public class EditDialog extends JDialog {
             
             @Override
             protected void process(java.util.List<String> chunks) {
-                // Atualiza a mensagem de loading na UI thread.
                 if (!chunks.isEmpty()) {
                     loadingLabel.setText(chunks.get(chunks.size() - 1));
                 }
@@ -296,29 +319,30 @@ public class EditDialog extends JDialog {
             @Override
             protected void done() {
                 try {
-                    get(); // Verifica se ocorreram exceções no doInBackground().
+                    get();
                     
-                    // MARCA COMO SALVO ANTES DE QUALQUER OUTRA AÇÃO
                     edicaoSalva = true;
                     
-                    String mensagem = apelidoFinal != null ? 
-                        "Apelido '" + apelidoFinal + "' salvo com sucesso!" : 
-                        "Apelido removido com sucesso!";
+                    StringBuilder mensagem = new StringBuilder("Alterações salvas:");
+                    if (nomeCrachaMudou) {
+                        mensagem.append("\n• Nome do crachá: ").append(nomeCrachaFinal != null ? nomeCrachaFinal : "(removido)");
+                    }
+                    if (apelidoMudou) {
+                        mensagem.append("\n• Apelido: ").append(apelidoFinal != null ? apelidoFinal : "(removido)");
+                    }
                     
-                    System.out.println("✅ Apelido atualizado para " + funcionarioAtual.getNome() + 
-                        " (RE: " + funcionarioAtual.getRe() + "): " + apelidoFinal);
+                    System.out.println("Dados atualizados para " + funcionarioAtual.getNome() + 
+                        " (RE: " + funcionarioAtual.getRe() + "): Nome Crachá=" + nomeCrachaFinal + ", Apelido=" + apelidoFinal);
                     
-                    // Mostra mensagem de sucesso
-                    JOptionPane.showMessageDialog(EditDialog.this, mensagem, "Sucesso", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(EditDialog.this, mensagem.toString(), "Sucesso", JOptionPane.INFORMATION_MESSAGE);
                     
-                    // FORÇA o fechamento do diálogo
                     SwingUtilities.invokeLater(() -> {
                         setVisible(false);
                         dispose();
                     });
                     
                 } catch (Exception e) {
-                    System.err.println("❌ Erro ao salvar apelido: " + e.getMessage());
+                    System.err.println("Erro ao salvar alterações: " + e.getMessage());
                     e.printStackTrace();
                     
                     edicaoSalva = false;
@@ -333,7 +357,7 @@ public class EditDialog extends JDialog {
             }
         };
         
-        worker.execute();        
+        worker.execute();
     }
 
     /**
